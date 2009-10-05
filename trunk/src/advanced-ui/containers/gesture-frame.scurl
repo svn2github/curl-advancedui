@@ -1,0 +1,354 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors D.TIAN
+||| Date Created: <2008-05-27(Tue)>
+||| Version: 0.0.5
+||| Note: 
+||| Last Update: <2008-09-19(Fri)11:09:58+0900 Deng Tian>
+||| 
+
+{define-class public GestureFrame {inherits Frame}
+
+  || for verifying with distance.
+  field private constant _TIME-LIMIT-LEN:Time = 0.3s
+  field private constant _TIME-BOTTOM-LIMIT-LEN:Time = 0.05s
+  field private constant _LINE-WIDTH-BOTTOM-LIMIT:Distance = 20mm
+||--  || for verifying with number of coords
+||--  field private constant _TIME-LIMIT-LEN:Time = 0.6s
+||--  field private constant _TIME-BOTTOM-LIMIT-LEN:Time = 0.3s
+
+  field private constant _TIME-TOP-LIMIT-NXT:Time = 0.03s
+||--  field private constant _CIRCLE-BOTTOM-LIMIT:int = 80
+  field private constant _COORDS-BOTTOM-LIMIT:int = 10
+||--  field private constant _COORDS-TOP-LIMIT:int = 50
+  field private constant _NUM-OF-XY-IGNORED:int = 2
+  field private constant _DISTANCE-FOR-ERROR:Distance = 6mm || int represent for milimeter.
+  
+  field private _arr-T:{Array-of Time} = {{Array-of Time}}
+  field private _arr-X:{Array-of Distance} = {{Array-of Distance}}
+  field private _arr-Y:{Array-of Distance} = {{Array-of Distance}}
+  {constructor public {default ...}
+    {construct-super {splice ...}}
+  }
+
+  || --------------------------------------------------------------------------
+  || Method Name: on-pointer-envelope-event
+  || Author: D.TIAN
+  || Date: 2008-06-17(Tue)11:56:32+0900
+  || Description: event handling method for identifying mouse gesture.
+  || Params: e:PointerEnvelopeEvent 
+  || Returns: none
+  || Notes: none
+  || Last Update: <2008-06-17(Tue)11:55:55+0900 Deng Tian>
+  || --------------------------------------------------------------------------
+  {method public {on-pointer-envelope-event e:PointerEnvelopeEvent}:void
+    ||{dump e}
+    {if  self._arr-T.size > 0 then
+        {let last-T:Time = 
+            self._arr-T[0]}
+||--        {dump last-T, e.event-time, e.event-time - last-T, self._arr-T.size}
+||--        {dump  e.x * 1000/1m, e.y * 1000/1m, self._arr-T.size}
+||--        {dump e.event-time - self._arr-T[self._arr-T.size - 1]}
+||--        {dump self._arr-T.size}
+        || If user moved his/her mouse during a long time, data will be cleared after an interval.
+        {if e.event-time - last-T > self._TIME-LIMIT-LEN then
+            {self._arr-T.clear}
+            {self._arr-X.clear}
+            {self._arr-Y.clear}
+         elseif e.event-time - self._arr-T[self._arr-T.size - 1] < self._TIME-TOP-LIMIT-NXT then
+            {self._arr-T.push e.event-time}
+            {self._arr-X.push e.x}
+            {self._arr-Y.push e.y}
+            
+         else
+        }
+        || If there are more than 80 coordinates, check
+||--        {if
+||--            ((self._arr-T.size > self._COORDS-BOTTOM-LIMIT and self._arr-T.size < self._COORDS-TOP-LIMIT) or  
+||--            self._arr-T.size > self._CIRCLE-BOTTOM-LIMIT)
+||--            and e.event-time - self._arr-T[1] > self._TIME-BOTTOM-LIMIT-LEN
+||--         then
+||--            
+||--            {self.check-locus}
+||--        }
+
+        || Check distance instead of number of coords.
+        {if  self._arr-T.size > self._COORDS-BOTTOM-LIMIT then
+            {if
+                ({abs (self._arr-X[self._NUM-OF-XY-IGNORED] -
+                       self._arr-X[self._arr-X.size - self._NUM-OF-XY-IGNORED - 1] )
+                 } > self._LINE-WIDTH-BOTTOM-LIMIT or  
+                 {abs (self._arr-Y[self._NUM-OF-XY-IGNORED] -
+                       self._arr-Y[self._arr-Y.size - self._NUM-OF-XY-IGNORED - 1] )
+                 } > self._LINE-WIDTH-BOTTOM-LIMIT ) and
+                e.event-time - self._arr-T[1] > self._TIME-BOTTOM-LIMIT-LEN
+             then
+                
+                {self.check-locus}
+            }
+        }
+     else
+        {self._arr-T.push e.event-time}
+        {self._arr-X.push e.x}
+        {self._arr-Y.push e.y}
+    }
+
+    {super.on-pointer-envelope-event e}
+  }
+
+  || check the locus of MouseMotion
+  {method package {check-locus}:void
+    || Mouse Gesture
+    {if {self.circle?} then
+        {self.enqueue-event {CircleMove}}
+        {return}
+    }
+    
+    {if {self.corner?} then
+        {self.enqueue-event {CornerToCornerMove}}
+        {return}
+    }
+    
+    {if {self.left-right?} then
+        {self.enqueue-event {LeftRightMove}}
+        {return}
+    }
+    {if {self.right-left?} then
+        {self.enqueue-event {RightLeftMove}}
+        {return}
+    }
+    
+    {if {self.up-down?} then
+        {self.enqueue-event {UpDownMove}}
+        {return}
+    }
+    {if {self.down-up?} then
+        {self.enqueue-event {DownUpMove}}
+        {return}
+    }
+
+    {if {self.up-left?} then
+        {self.enqueue-event {UpLeftMove}}
+        {return}
+    }
+    {if {self.up-right?} then
+        {self.enqueue-event {UpRightMove}}
+        {return}
+    }
+    {if {self.down-left?} then
+        {self.enqueue-event {DownLeftMove}}
+        {return}
+    }
+    {if {self.down-right?} then
+        {self.enqueue-event {DownRightMove}}
+        {return}
+    }
+  }
+
+  || Methods for identifying locus of mouse motion.
+  ||2008-06-16(Mon)17:39:56+0900 D.TIAN
+  {method package {left-right?}:bool
+||--    {if self._arr-T.size > self._COORDS-BOTTOM-LIMIT and
+||--        self._arr-T.size < self._COORDS-TOP-LIMIT then
+        
+        let x-arr:{Array-of Distance} = {{Array-of Distance}}
+        let y-arr:{Array-of Distance} = {{Array-of Distance}}
+        
+        {for x:Distance key k:int in self._arr-X do
+            {if k > self._NUM-OF-XY-IGNORED and k < (self._arr-X.size - self._NUM-OF-XY-IGNORED) then
+                {x-arr.append self._arr-X[k]}
+                {y-arr.append self._arr-Y[k]}
+            }
+        }
+        let middle-pos:int = (x-arr.size / 2) asa int
+||--        {dump middle-pos}
+        {for x:Distance key k:int in x-arr do
+            {if {abs (y-arr[k] - y-arr[middle-pos])}  > self._DISTANCE-FOR-ERROR then
+                {return false}
+             elseif (k < x-arr.size - 1) and
+                (x - x-arr[k + 1]) * 1000/1m  > 0 then
+                {return false}
+             else
+            }
+        }
+||--        {dump self._arr-T.size}
+        {return true}
+||--    }
+||--    {return false}
+  }
+  {method package {right-left?}:bool
+
+        let x-arr:{Array-of Distance} = {{Array-of Distance}}
+        let y-arr:{Array-of Distance} = {{Array-of Distance}}
+        
+        {for x:Distance key k:int in self._arr-X do
+            {if k > self._NUM-OF-XY-IGNORED and k < (self._arr-X.size - self._NUM-OF-XY-IGNORED) then
+                {x-arr.append self._arr-X[k]}
+                {y-arr.append self._arr-Y[k]}
+            }
+        }
+        let middle-pos:int = (x-arr.size / 2) asa int
+||--        {dump middle-pos}
+        {for x:Distance key k:int in x-arr do
+            {if {abs (y-arr[k] - y-arr[middle-pos])} > self._DISTANCE-FOR-ERROR then
+                {return false}
+             elseif (k < x-arr.size - 1) and
+                (x - x-arr[k + 1]) * 1000/1m  < 0 then
+                {return false}
+             else
+            }
+        }
+||--        {dump self._arr-T.size}
+        {return true}
+  }
+  
+  {method package {circle?}:bool
+    {if self._arr-T.size <80 then
+        {return false}
+    }
+    {return false}
+  }
+
+  {method package {corner?}:bool
+    {return false}
+  }
+
+  {method package {up-down?}:bool
+        
+        let x-arr:{Array-of Distance} = {{Array-of Distance}}
+        let y-arr:{Array-of Distance} = {{Array-of Distance}}
+        
+        {for x:Distance key k:int in self._arr-X do
+            {if k > self._NUM-OF-XY-IGNORED and k < (self._arr-X.size - self._NUM-OF-XY-IGNORED) then
+                {x-arr.append self._arr-X[k]}
+                {y-arr.append self._arr-Y[k]}
+            }
+        }
+        let middle-pos:int = (x-arr.size / 2) asa int
+||--        {dump middle-pos}
+        {for x:Distance key k:int in x-arr do
+            {if {abs (x-arr[k] - x-arr[middle-pos])} > self._DISTANCE-FOR-ERROR then
+                {return false}
+             elseif (k < y-arr.size - 1) and
+                (y-arr[k] - y-arr[k + 1]) * 1000/1m  < 0 then
+                {return false}
+             else
+            }
+        }
+
+    {return true}
+  }
+  
+  {method package {down-up?}:bool
+        
+        let x-arr:{Array-of Distance} = {{Array-of Distance}}
+        let y-arr:{Array-of Distance} = {{Array-of Distance}}
+        
+        {for x:Distance key k:int in self._arr-X do
+            {if k > self._NUM-OF-XY-IGNORED and k < (self._arr-X.size - self._NUM-OF-XY-IGNORED) then
+                {x-arr.append self._arr-X[k]}
+                {y-arr.append self._arr-Y[k]}
+            }
+        }
+        let middle-pos:int = (x-arr.size / 2) asa int
+||--        {dump middle-pos}
+        {for x:Distance key k:int in x-arr do
+            {if {abs (x-arr[k] - x-arr[middle-pos])}  > self._DISTANCE-FOR-ERROR then
+                {return false}
+             elseif (k < y-arr.size - 1) and
+                (y-arr[k] - y-arr[k + 1]) * 1000/1m  > 0 then
+                {return false}
+             else
+            }
+        }
+
+    {return true}
+  }
+
+  {method package {up-left?}:bool
+    {return false}
+  }
+
+  {method package {up-right?}:bool
+    {return false}
+  }
+  
+  {method package {down-left?}:bool
+    {return false}
+  }
+  {method package {down-right?}:bool
+    {return false}
+  }
+
+
+  {method public {on-circle-move e:CircleMove}:void
+||--    {popup-message "Circle"}
+  }
+
+  {method public {on-left-right e:LeftRightMove}:void
+  }
+  {method public {on-right-left e:RightLeftMove}:void
+  }
+
+  {method public {on-corner-to-corner e:CornerToCornerMove}:void
+  }
+
+  {method public {on-up-down e:UpDownMove}:void
+  }
+  
+  {method public {on-down-up e:DownUpMove}:void
+  }
+
+  {method public {on-up-left e:UpLeftMove}:void
+  }
+
+  {method public {on-up-right e:UpRightMove}:void
+  }
+  
+  {method public {on-down-left e:DownLeftMove}:void
+  }
+  
+  {method public {on-down-right e:DownRightMove}:void
+  }
+
+  {method public {handle-event e:Event}:void
+
+    {type-switch e
+     case cm:CircleMove do
+        {self.on-circle-move cm}
+     case lrm:LeftRightMove do
+        {self.on-left-right lrm}
+     case rlm:RightLeftMove do
+        {self.on-right-left rlm}
+     case ctc:CornerToCornerMove do
+        {self.on-corner-to-corner ctc}
+     case udm:UpDownMove do
+        {self.on-up-down udm}
+     case ulm:UpLeftMove do
+        {self.on-up-left ulm}
+     case urm:UpRightMove do
+        {self.on-up-right urm}
+     case dlm:DownLeftMove do
+        {self.on-down-left dlm}
+     case drm:DownRightMove do
+        {self.on-down-right drm}
+     else
+    }
+    
+    {super.handle-event e}
+    
+  }
+}

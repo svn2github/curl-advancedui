@@ -1,0 +1,945 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hideki Omatsu
+|||
+
+
+{import * from CURL.ENGINE.APPLET}
+
+||
+|| ImagePopupViewAnimationType
+||
+{define-enum public ImagePopupViewAnimationType
+    width-next-height,
+    width-and-height
+}
+
+
+||
+|| ImagePopupButton
+||
+{define-class public ImagePopupButton {inherits Frame}
+  
+  field package _thumb-url:Url
+  field package _image-url:Url
+  field package _title:String
+  field package _group-name:String
+  
+  field package _animation-type:ImagePopupViewAnimationType
+  
+  || ------------------------------------------------------------
+  || for Open View
+  field package _image-canvas-open-step:Distance
+  field package _image-canvas-open-interval:Time
+  field package _bottom-frame-open-step:Distance
+  field package _bottom-frame-open-interval:Time
+  
+  || ------------------------------------------------------------
+  || for Close View
+  field package _image-canvas-close-step:Distance
+  field package _image-canvas-close-interval:Time
+  field package _bottom-frame-close-step:Distance
+  field package _bottom-frame-close-interval:Time
+  
+  
+  field package _background_pattern:FillPattern
+  field package _prev-button-image:Url
+  field package _next-button-image:Url
+  field package _close-button-image:Url
+  
+  
+  def private no-image:String = "../images/lb-no-data.jpg"
+  
+  
+  {constructor public {default
+                          thumb-img:Url,
+                          popup-img:Url,
+                          title:String          = "",
+                          group-name:String     = "",
+                          tooltip:#String       = null,
+                          background_pattern:FillPattern              = {FillPattern.from-url {url "../images/lb-back-75.gif"}},
+                          prev-button-image:Url                       = {url "../images/lb-prev.gif"},
+                          next-button-image:Url                       = {url "../images/lb-next.gif"},
+                          close-button-image:Url                      = {url "../images/lb-close.gif"},
+                          animation-type:ImagePopupViewAnimationType  = ImagePopupViewAnimationType.width-next-height,
+                          image-canvas-open-step:Distance             = {any-to-Distance 24px},
+                          image-canvas-open-interval:Time             = 0.002s,
+                          bottom-frame-open-step:Distance             = {any-to-Distance 2px},
+                          bottom-frame-open-interval:Time             = 0.002s,
+                          image-canvas-close-step:Distance            = {any-to-Distance 48px},
+                          image-canvas-close-interval:Time            = 0.002s,
+                          bottom-frame-close-step:Distance            = {any-to-Distance 2px},
+                          bottom-frame-close-interval:Time            = 0.001s,
+                          ...}
+    
+    {construct-super
+        {splice ...}}
+    
+    set self._background_pattern            = background_pattern
+    set self._prev-button-image             = prev-button-image
+    set self._next-button-image             = next-button-image
+    set self._close-button-image            = close-button-image
+    set self._animation-type                = animation-type
+    set self._image-canvas-open-step        = image-canvas-open-step
+    set self._image-canvas-open-interval    = image-canvas-open-interval
+    set self._bottom-frame-open-step        = bottom-frame-open-step
+    set self._bottom-frame-open-interval    = bottom-frame-open-interval
+    set self._image-canvas-close-step       = image-canvas-close-step
+    set self._image-canvas-close-interval   = image-canvas-close-interval
+    set self._bottom-frame-close-step       = bottom-frame-close-step
+    set self._bottom-frame-close-interval   = bottom-frame-close-interval
+    
+    set self._thumb-url = {if {url-is-exist? thumb-img.full-filename} then
+                              thumb-img
+                           else
+                              {url ImagePopupButton.no-image}
+                          }
+    set self.background = {Background self._thumb-url}
+    
+    set self._image-url = {if {url-is-exist? popup-img.full-filename} then
+                              popup-img
+                           else
+                              {url ImagePopupButton.no-image}
+                          }
+    
+    set self._title = title
+    
+    set self._group-name = group-name
+    
+    {if-non-null tooltip then
+        set self.tooltip = {Tooltip {pre {String tooltip}}}
+    }
+  }
+  
+  
+  {method public {on-pointer-press
+                     e:PointerPress}:void
+    
+    let piv:ImagePopupView = {ImagePopupView
+                                 self,
+                                 self._background_pattern,
+                                 self._prev-button-image,
+                                 self._next-button-image,
+                                 self._close-button-image,
+                                 self._animation-type,
+                                 self._image-canvas-open-step,
+                                 self._image-canvas-open-interval,
+                                 self._bottom-frame-open-step,
+                                 self._bottom-frame-open-interval,
+                                 self._image-canvas-close-step,
+                                 self._image-canvas-close-interval,
+                                 self._bottom-frame-close-step,
+                                 self._bottom-frame-close-interval
+                             }
+    {piv.show-view}
+  }
+  
+  
+}
+
+
+||
+|| ImagePopupView
+||
+{define-class package ImagePopupView {inherits View}
+  
+  let private _show?:bool                   = false
+  def init-width:Distance                   = {any-to-Distance   5px}
+  def init-height:Distance                  = {any-to-Distance   5px}
+  def bottom-frame-height:Distance          = {any-to-Distance  32px}
+  def frame-border-size:Distance            = {any-to-Distance   8px}
+  def frame-border-color:FillPattern        = FillPattern.white
+  def prev-next-button-width:Distance       = {any-to-Distance  64px}
+  def prev-next-button-height:Distance      = {any-to-Distance  32px}
+  def prev-next-button-disp-height:Distance = {any-to-Distance  10px}
+  def close-button-width:Distance           = {any-to-Distance  84px}
+  def close-button-height:Distance          = {any-to-Distance  28px}
+  def image-minimum-width:Distance          = {any-to-Distance 200px}
+  def image-minimum-height:Distance         = {any-to-Distance  80px}
+  
+  field package _animation-type:ImagePopupViewAnimationType
+  
+  
+  || ------------------------------------------------------------
+  || for Open View
+  field package _image-canvas-open-step:Distance
+  field package _image-canvas-open-interval:Time
+  field package _bottom-frame-open-step:Distance
+  field package _bottom-frame-open-interval:Time
+  
+  || ------------------------------------------------------------
+  || for Close View  
+  field package _image-canvas-close-step:Distance
+  field package _image-canvas-close-interval:Time
+  field package _bottom-frame-close-step:Distance
+  field package _bottom-frame-close-interval:Time
+  
+  field package _background_pattern:FillPattern
+  field package _prev-button-image:Url
+  field package _next-button-image:Url
+  field package _close-button-image:Url
+  
+  field private _top-view:#View
+  field private _top-container:#StandardActiveTraversalContainer
+  field private _top-graphic:#Graphic
+  field private _current-btn:ImagePopupButton
+  field private _same-group-btn:{Array-of ImagePopupButton}
+  field private _current-pos:int = 0
+  field private _bottom?:bool = false
+  field private _resize?:bool = false
+  
+  field private _base-canvas:Canvas
+  field private _base-vbox:VBox
+  field private _image-canvas:Canvas
+  field private _bottom-frame:Frame
+  field private _image-ww:Distance
+  field private _image-hh:Distance
+  field private _close-btn:ImageButton
+  field private _prev-btn:ImageButton
+  field private _next-btn:ImageButton
+  
+  
+  {constructor package {default
+                          image-popup-btn:ImagePopupButton,
+                          background_pattern:FillPattern,
+                          prev-button-image:Url,
+                          next-button-image:Url,
+                          close-button-image:Url,
+                          animation-type:ImagePopupViewAnimationType,
+                          image-canvas-open-step:Distance,
+                          image-canvas-open-interval:Time,
+                          bottom-frame-open-step:Distance,
+                          bottom-frame-open-interval:Time,
+                          image-canvas-close-step:Distance,
+                          image-canvas-close-interval:Time,
+                          bottom-frame-close-step:Distance,
+                          bottom-frame-close-interval:Time,
+                          ...}
+    
+    {construct-super
+        decorations? = false,
+        {splice ...}}
+    
+    set self._current-btn = image-popup-btn
+    
+    set self._background_pattern            = background_pattern
+    set self._prev-button-image             = prev-button-image
+    set self._next-button-image             = next-button-image
+    set self._close-button-image            = close-button-image
+    set self._animation-type                = animation-type
+    set self._image-canvas-open-step        = image-canvas-open-step
+    set self._image-canvas-open-interval    = image-canvas-open-interval
+    set self._bottom-frame-open-step        = bottom-frame-open-step
+    set self._bottom-frame-open-interval    = bottom-frame-open-interval
+    set self._image-canvas-close-step       = image-canvas-close-step
+    set self._image-canvas-close-interval   = image-canvas-close-interval
+    set self._bottom-frame-close-step       = bottom-frame-close-step
+    set self._bottom-frame-close-interval   = bottom-frame-close-interval
+    
+    set self._same-group-btn = {self.get-same-group self._current-btn._group-name}
+    set self._current-pos = -1
+    {for btn:ImagePopupButton key pos in self._same-group-btn do
+        {if btn == self._current-btn then
+            set self._current-pos = pos
+        }
+    }
+    
+    
+    set self._close-btn = {ImageButton
+                              self._close-button-image,
+                              width  = ImagePopupView.close-button-width,
+                              height = ImagePopupView.close-button-height,
+                              exec-proc = {proc {}:void
+                                              {self.close}
+                                          }
+                          }
+    set self._prev-btn  = {ImageButton
+                              self._prev-button-image,
+                              width  = ImagePopupView.prev-next-button-width,
+                              height = ImagePopupView.prev-next-button-height,
+                              style  = "rollover",
+                              exec-proc = {proc {}:void
+                                              {if not self._resize? and
+                                                  self._current-pos > 0 then
+                                                  {dec self._current-pos}
+                                                  set self._current-btn = self._same-group-btn[self._current-pos]
+                                                  {self.change-image}
+                                              }
+                                          }
+                          }
+    set self._next-btn  = {ImageButton
+                              self._next-button-image,
+                              width  = ImagePopupView.prev-next-button-width,
+                              height = ImagePopupView.prev-next-button-height,
+                              style  = "rollover",
+                              exec-proc = {proc {}:void
+                                              {if not self._resize? and
+                                                  self._current-pos < self._same-group-btn.size - 1 then
+                                                  {inc self._current-pos}
+                                                  set self._current-btn = self._same-group-btn[self._current-pos]
+                                                  {self.change-image}
+                                              }
+                                          }
+                          }
+    
+    set self._base-canvas        = {Canvas
+                                       background = Background.transparent,
+                                       border-color = ImagePopupView.frame-border-color,
+                                       border-width = ImagePopupView.frame-border-size
+                                   }
+    set self._base-vbox         = {VBox
+                                  }
+    set self._image-canvas       = {Canvas
+                                   }
+    set self._bottom-frame      = {Frame
+                                  }
+    
+    set self._base-canvas.width  = ImagePopupView.init-width
+    set self._base-canvas.height = ImagePopupView.init-height
+    
+    let (x:Distance, y:Distance, width:Distance, height:Distance) =
+        {self.get-window-position-and-size}
+    {self.add self._base-canvas}
+    {self.set-window-position-and-size
+        x, y, ImagePopupView.init-width, ImagePopupView.init-height}
+  }
+  
+  
+  {method package {show-view
+                     force-on-display?:bool = true,
+                     center?:bool = true
+                 }:void
+    
+    {if ImagePopupView._show? then
+        {output "It cannot start at the same time."}
+        {return}
+    }
+    
+    let top:Graphic = {get-the-applet}.document.top-level-graphic
+    {if top.parent isa View then
+        set self._top-view = top.parent asa View
+        {if top isa StandardActiveTraversalContainer then
+            set self._top-container = top asa StandardActiveTraversalContainer
+            {if-non-null child = self._top-container.child then
+                set self._top-graphic = child.graphic
+            }
+        }
+    }
+    
+    {if-non-null top-view = self._top-view then
+        set top-view.enabled? = false
+    }
+    
+    {super.show
+        force-on-display? = force-on-display?,
+        center? = center?}
+    
+    let image-finish-proc:{proc-type {}:void} =
+        {proc {}:void
+        }
+    
+    {self.change-image image-finish-proc = image-finish-proc}
+    
+    
+    {if-non-null
+        top-view = self._top-view,
+        top-container = self._top-container,
+        top-graphic = self._top-graphic then
+        
+        let ww:Distance = {any-to-Distance top-view.width}
+        let hh:Distance = {any-to-Distance top-view.height}
+        let work-canvas:Canvas = {Canvas
+                                     width  = ww,
+                                     height = hh
+                                 }
+        set top-graphic.width  = ww
+        set top-graphic.height = hh
+        {work-canvas.add top-graphic, x = ww / 2 , y = hh / 2}
+        {work-canvas.add {Frame
+                             width = {any-to-Distance top-view.width},
+                             height = {any-to-Distance top-view.height},
+                             background = {Background.tiled
+                                              from-root? = false,
+                                              pattern = self._background_pattern}
+                         }, x = 0mm, y = 0mm}
+        {top-container.add work-canvas}
+    }
+    
+    set ImagePopupView._show? = true
+    
+    {self.request-key-focus}
+    {self.add-event-handler
+        {on e:RawKeyPress do
+            {if e.keycode == Keycode.esc then
+                
+                || ESC Key: Close image view
+                {self.close}
+                
+             elseif e.keycode == Keycode.left then
+                
+                || Left Arrow Key: Previous image
+                {self._prev-btn._exec-proc}
+                
+             elseif e.keycode == Keycode.right then
+                
+                || Right Arrow Key: Next image
+                {self._next-btn._exec-proc}
+                
+            }
+        }}
+    {self._base-vbox.add-event-handler
+        {on e:PointerPress do
+            {self.close}
+        }}
+  }
+  
+  
+  {method private {change-image
+                      image-finish-proc:#{proc-type {}:void} = null
+                  }:void
+    
+    set self._resize? = true
+    
+    let expansion-bottom-finish-proc:{proc-type {}:void} =
+        {proc {}:void
+            {self._base-vbox.add self._bottom-frame}
+            
+            {if self._current-pos > 0 then
+                {self._image-canvas.add
+                    self._prev-btn,
+                    x = 0px,
+                    y = ImagePopupView.prev-next-button-disp-height}
+            }
+            
+            {if self._current-pos < self._same-group-btn.size - 1 then
+                {with-compiler-directives allow-any-calls? = true do
+                    {self._image-canvas.add
+                        self._next-btn,
+                        x = {any-to-Distance {any-to-pixel self._image-ww} * 1px} - self._prev-btn.width,
+                        y = ImagePopupView.prev-next-button-disp-height}
+                }
+            }
+            
+            {after 0.1s do
+                {garbage-collect}
+            }
+            set self._resize? = false
+        }
+    
+    let expansion-image-finish-proc:{proc-type {}:void} =
+        {proc {}:void
+            {if-non-null image-finish-proc then
+                {image-finish-proc}
+            }
+            {self.expansion-bottom expansion-bottom-finish-proc}
+        }
+    
+    let reduction-bottom-finish-proc:{proc-type {}:void} =
+        {proc {}:void
+            let img-pixcel:Pixmap = {Pixmap.from-url self._current-btn._image-url}
+            set self._image-canvas      = {Canvas
+                                              width  = img-pixcel.width  * 1px,
+                                              height = img-pixcel.height * 1px,
+                                              background = img-pixcel
+                                          }
+            set self._bottom-frame      = {Frame
+                                              width  = img-pixcel.width  * 1px,
+                                              {HBox
+                                                  valign = "top",
+                                                  margin = 2px,
+                                                  {Frame
+                                                      margin = 2px,
+                                                      self._current-btn._title
+                                                  },
+                                                  {Fill},
+                                                  self._close-btn
+                                              }
+                                          }
+            
+            {with-compiler-directives allow-any-calls? = true do
+                set self._image-ww = {any-to-Distance self._image-canvas.width}
+                set self._image-hh = {any-to-Distance self._image-canvas.height}
+            }
+            
+            {if self._image-ww < ImagePopupView.image-minimum-width or
+                self._image-hh < ImagePopupView.image-minimum-height then
+                let ratio-ww:double = ImagePopupView.image-minimum-width  / self._image-ww
+                let ratio-hh:double = ImagePopupView.image-minimum-height / self._image-hh
+                let ratio:double = {max ratio-ww, ratio-hh}
+                set self._image-ww = self._image-ww * ratio
+                set self._image-hh = self._image-hh * ratio
+                set self._image-canvas.width  = self._image-ww
+                set self._image-canvas.height = self._image-hh
+                set self._bottom-frame.width  = self._image-ww
+            }
+            
+            {self._base-vbox.clear}
+            {self._base-canvas.clear}
+            
+            {self.expansion-image expansion-image-finish-proc}
+        }
+    
+    {self.reduction-bottom reduction-bottom-finish-proc}
+  }
+  
+  
+  {method public {close}:void
+
+    {if self._resize? then
+        {return}
+    }
+    
+    {if-non-null
+        top-container = self._top-container,
+        top-graphic = self._top-graphic then
+        {top-container.add
+            top-graphic, replace? = true}
+    }
+    
+    {if-non-null top-view = self._top-view then
+        set top-view.enabled? = true
+    }
+    
+    {super.close}
+    
+    {after 0.1s do
+        {garbage-collect}
+    }
+    set ImagePopupView._show? = false
+||--    let image-finish-proc:{proc-type {}:void} =
+||--        {proc {}:void
+||--            {if-non-null
+||--                top-container = self._top-container,
+||--                top-graphic = self._top-graphic then
+||--                {top-container.add
+||--                    top-graphic, replace? = true}
+||--            }
+||--            
+||--            {if-non-null top-view = self._top-view then
+||--                set top-view.enabled? = true
+||--            }
+||--            
+||--            {super.close}
+||--            
+||--            {after 0.1s do
+||--                {garbage-collect}
+||--            }
+||--            set ImagePopupView._show? = false
+||--        }
+||--    
+||--    let bottom-finish-proc:{proc-type {}:void} =
+||--        {proc {}:void
+||--            {self.reduction-image image-finish-proc}
+||--        }
+||--    
+||--    {self.reduction-bottom bottom-finish-proc}
+  }
+  
+  
+  {method private {expansion-image
+                     after-proc:#{proc-type {}:void}
+                 }:void
+    
+    let finish-proc:{proc-type {}:void} =
+        {proc {}:void
+            {self._base-vbox.add self._image-canvas}
+            {self._base-canvas.add self._base-vbox}
+            
+            {if-non-null after-proc then
+                {after-proc}
+            }
+        }
+    
+    {self.resize-view
+        self._image-ww,
+        self._image-hh,
+        self._image-canvas-open-interval,
+        self._image-canvas-open-step,
+        finish-proc = finish-proc
+    }
+  }
+  
+  
+  {method private {expansion-bottom
+                     after-proc:#{proc-type {}:void}
+                 }:void
+    
+    let finish-proc:{proc-type {}:void} =
+        {proc {}:void
+            {self._base-vbox.add self._bottom-frame}
+            {if-non-null after-proc then
+                {after-proc}
+            }
+        }
+    
+    {self.resize-view
+        self._image-ww,
+        self._image-hh + ImagePopupView.bottom-frame-height,
+        self._bottom-frame-open-interval,
+        self._bottom-frame-open-step,
+        move-base-position? = false,
+        finish-proc = finish-proc
+    }
+    
+    set self._bottom? = true
+  }
+  
+  
+  {method private {reduction-image
+                     after-proc:#{proc-type {}:void}
+                 }:void
+    
+    let finish-proc:{proc-type {}:void} =
+        {proc {}:void
+            {if-non-null after-proc then
+                {after-proc}
+            }
+        }
+    
+    {self._base-vbox.clear}
+    {self._base-canvas.clear}
+    
+    {self.resize-view
+        ImagePopupView.init-width  - ImagePopupView.frame-border-size * 2,
+        ImagePopupView.init-height - ImagePopupView.frame-border-size * 2,
+        self._image-canvas-close-interval,
+        self._image-canvas-close-step,
+        finish-proc = finish-proc
+    }
+  }
+  
+  
+  {method private {reduction-bottom
+                     after-proc:#{proc-type {}:void}
+                 }:void
+    
+    let finish-proc:{proc-type {}:void} =
+        {proc {}:void
+            {if-non-null after-proc then
+                {after-proc}
+            }
+        }
+    
+    {self._base-vbox.clear}
+    {self._base-vbox.add self._image-canvas}
+    
+    {self.resize-view
+        self._image-ww,
+        self._image-hh,
+        self._bottom-frame-close-interval,
+        self._bottom-frame-close-step,
+        move-base-position? = false,
+        finish-proc = finish-proc
+    }
+    
+    set self._bottom? = false
+  }
+  
+  
+  {method private {resize-view
+                      resize-ww:Distance,
+                      resize-hh:Distance,
+                      interval:Time,
+                      step:Distance,
+                      move-base-position?:bool = true,
+                      finish-proc:#{proc-type {}:void} = null
+                  }:void
+    
+    {inc resize-ww, ImagePopupView.frame-border-size * 2}
+    {inc resize-hh, ImagePopupView.frame-border-size * 2}
+    
+    let frame-ww:Distance = 0mm
+    let frame-hh:Distance = 0mm
+    {if-non-null self._base-canvas.width then
+        set frame-ww = {any-to-Distance self._base-canvas.width}
+    }
+    {if-non-null self._base-canvas.height then
+        set frame-hh = {any-to-Distance self._base-canvas.height}
+    }
+    
+    let diff-ww:Distance = resize-ww - frame-ww
+    let diff-hh:Distance = resize-hh - frame-hh
+    
+    let step-ww:Distance = step
+    let step-hh:Distance = step
+    
+    let divide-ww:int = {floor diff-ww / step-ww} asa int
+    let divide-hh:int = {floor diff-hh / step-hh} asa int
+    {if diff-ww == 0mm then
+        set divide-ww = 0
+    }
+    {if diff-hh == 0mm then
+        set divide-hh = 0
+    }
+    {if divide-ww < 0 then
+        set divide-ww = -divide-ww
+        set step-ww = -step-ww
+    }
+    {if divide-hh < 0 then
+        set divide-hh = -divide-hh
+        set step-hh = -step-hh
+    }
+    
+    {if self._animation-type == ImagePopupViewAnimationType.width-next-height then
+        
+        let divide-all:int = divide-ww + divide-hh
+        {if divide-all == 0 then
+            {finish-proc}
+            {return}
+        }
+        
+        let count:int = 0
+        let tm:Timer = {Timer
+                           enabled? = true,
+                           repeat = divide-all + 1,
+                           interval = interval,
+                           {on TimerEvent do
+                               {inc count}
+                               {if count == divide-all + 1 then
+                                   
+                                   {finish-proc}
+                                   
+                                elseif count > divide-ww then
+                                   
+                                   {if count == divide-all then
+                                       set step-hh = resize-hh - frame-hh
+                                   }
+                                   
+                                   let (x:Distance, y:Distance, width:Distance, height:Distance) =
+                                       {self.get-window-position-and-size}
+                                   {if move-base-position? then
+                                       set y = y - step-hh / 2
+                                   }
+                                   {inc frame-hh, step-hh}
+                                   set self._base-canvas.height = frame-hh
+                                   {self.set-window-position-and-size x, y, width, frame-hh}
+                                   
+                                else
+                                   
+                                   {if count == divide-ww then
+                                       set step-ww = resize-ww - frame-ww
+                                   }
+                                   
+                                   let (x:Distance, y:Distance, width:Distance, height:Distance) =
+                                       {self.get-window-position-and-size}
+                                   {if move-base-position? then
+                                       set x = x - step-ww / 2
+                                   }
+                                   {inc frame-ww, step-ww}
+                                   set self._base-canvas.width  = frame-ww
+                                   {self.set-window-position-and-size x, y, frame-ww, height}
+                                   
+                               }
+                           }
+                       }
+        
+     else
+        
+        let divide-all:int = {max divide-ww, divide-hh}
+        {if divide-all == 0 then
+            {finish-proc}
+            {return}
+        }
+        
+        let count:int = 0
+        let tm:Timer = {Timer
+                           enabled? = true,
+                           repeat = divide-all + 1,
+                           interval = interval,
+                           {on TimerEvent do
+                               {inc count}
+                               {if count == divide-all + 1 then
+                                   
+                                   {finish-proc}
+                                   
+                                else
+                                   
+                                   {if count > divide-ww then
+                                       set step-ww = 0mm
+                                    elseif count == divide-ww then
+                                       set step-ww = resize-ww - frame-ww
+                                   }
+                                   {if count > divide-hh then
+                                       set step-hh = 0mm
+                                    elseif count == divide-hh then
+                                       set step-hh = resize-hh - frame-hh
+                                   }
+                                   
+                                   let (x:Distance, y:Distance, width:Distance, height:Distance) =
+                                       {self.get-window-position-and-size}
+                                   {if move-base-position? then
+                                       set x = x - step-ww / 2
+                                       set y = y - step-hh / 2
+                                   }
+                                   {inc frame-ww, step-ww}
+                                   {inc frame-hh, step-hh}
+                                   set self._base-canvas.width  = frame-ww
+                                   set self._base-canvas.height = frame-hh
+                                   {self.set-window-position-and-size x, y, frame-ww, frame-hh}
+                               }
+                           }
+                       }
+        
+    }
+  }
+  
+  
+  {method private {get-same-group
+                      group-name:String
+                  }:{Array-of ImagePopupButton}
+    
+    let top:Graphic = {get-the-applet}.document.top-level-graphic
+    let result:{Array-of ImagePopupButton} = {self.get-same-group-sub top, group-name}
+    {return result}
+  }
+  
+  
+  {method private {get-same-group-sub
+                      graphic:Graphic,
+                      group-name:String
+                  }:{Array-of ImagePopupButton}
+    
+    let result:{Array-of ImagePopupButton} = {new {Array-of ImagePopupButton}}
+    
+    {if graphic isa ImagePopupButton then
+        let image-popup-button:ImagePopupButton = graphic asa ImagePopupButton
+        {if group-name.empty? or
+            {image-popup-button._group-name.equal? group-name} then
+            {result.append image-popup-button}
+        }
+     elseif graphic isa Box then
+        let box:Box = graphic asa Box
+        {for child:Graphic in box.graphical-children do
+            {if child isa ImagePopupButton then
+                let image-popup-button:ImagePopupButton = child asa ImagePopupButton
+                {if group-name.empty? or
+                    {image-popup-button._group-name.equal? group-name} then
+                    {result.append image-popup-button}
+                }
+             elseif child isa Box then
+                let image-popup-button-array:{Array-of ImagePopupButton} = {self.get-same-group-sub
+                                                                               child, group-name}
+                {for image-popup-button:ImagePopupButton in image-popup-button-array do
+                    {result.append image-popup-button}
+                }
+            }
+        }
+    }
+    
+    {return result}
+  }
+  
+  
+}
+
+
+||
+|| ImageButton
+||
+{define-class package ImageButton {inherits Frame}
+  
+  field package _image-url:Url
+  field package _style:CommandButtonStyle
+  field package _exec-proc:#{proc-type {}:void}
+  
+  def private no-image:String = "../images/lb-no-data.jpg"
+  
+  
+  {constructor package {default
+                           button-img:Url,
+                           style:CommandButtonStyle = CommandButtonStyle.standard,
+                           exec-proc:#{proc-type {}:void} = null,
+                           ...}
+    
+    {construct-super
+        {splice ...}}
+    
+    set self._image-url = {if {url-is-exist? button-img.full-filename} then
+                              button-img
+                           else
+                              {url ImageButton.no-image}
+                          }
+    set self.background = {Background self._image-url}
+    
+    set self._style = style
+    
+    set self._exec-proc = exec-proc
+    
+    {if self._style == CommandButtonStyle.rollover then
+        set self.background = Background.transparent
+        {self.add-event-handler
+            {on e:PointerEvent do
+                set self.background = {Background self._image-url}
+            }}
+        {self.add-event-handler
+            {on e:PointerLeave do
+                set self.background = Background.transparent
+            }}
+    }
+    
+    {self.add-event-handler
+        {on e:PointerPress do
+            {if-non-null self._exec-proc then
+                {e.consume}
+                {self._exec-proc}
+            }
+        }}
+  }
+  
+  
+}
+
+
+{define-proc package {url-is-exist?
+                         check-url-str:String
+                     }:bool
+    
+    {if check-url-str.empty? then
+        {return false}
+    }
+    
+    let check-url:Url = {url check-url-str}
+    {try
+        {with-compiler-directives allow-implicit-any-casts? = true do
+            let uriobj:any = {check-url.resolve}
+            {type-switch uriobj
+             case hf:HttpFile do
+                let wk-stream:HttpTextInputStream = {hf.http-read-open}
+                {wk-stream.close}
+                {return true}
+             case lf:LocalFile do
+                let wk-stream:TextInputStream = {lf.read-open}
+                {wk-stream.close}
+                {return true}
+            }
+            {return false}
+        }
+     catch e:Exception do
+        {return false}
+    }
+}
+
+
+{define-proc package {any-to-pixel
+                         dist:any
+                     }:double
+    def distance-1px:Distance = {any-to-Distance 1px}
+    {if-non-null dist then
+        {return ({any-to-Distance dist} / distance-1px)}
+     else
+        {return -1.0}
+    }
+}

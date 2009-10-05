@@ -1,0 +1,49 @@
+{curl 6.0, 7.0 applet}
+{curl-file-attributes character-encoding = "shift-jis"}
+{applet manifest = "manifest.mcurl",
+    {compiler-directives careful? = true}
+}
+
+{import * from COM.CURLAP.ADVANCED-UI.CONTAINERS}
+{api-version-switch
+ case "7.0+" do
+    || do nothing
+ case "6.0+" do
+    {import * from COM.CURL.GUI.STYLED-CONTROLS}
+    {install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
+}
+
+|| FOR TEST
+{let gf:GestureFrame = {GestureFrame {CommandButton width=5cm, height=5cm} ,background="white", width = 8cm, height = 8cm}}
+
+{do 
+    {gf.add-event-handler
+        {on LeftRightMove do
+            {popup-message "LeftRight moved"}
+        }
+    }
+    {gf.add-event-handler
+        {on RightLeftMove do
+            {popup-message "RightLeft moved"}
+        }
+    }
+    {gf.add-event-handler
+        {on UpDownMove do
+            {popup-message "UpDown moved"}
+        }
+    }
+    {gf.add-event-handler
+        {on DownUpMove do
+            {popup-message "DownUp moved"}
+        }
+    }
+}
+{View
+    || ‚±‚Ì{Frame}‚ð’u‚«Š·‚¦‚ÄŽg—p‚µ‚Ä‚­‚¾‚³‚¢
+    gf,
+    visibility = "normal",
+    {on WindowClose do
+        {exit}
+    }
+}
+

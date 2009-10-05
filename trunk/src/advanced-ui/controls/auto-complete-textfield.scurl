@@ -1,0 +1,259 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Naoto Miyazaki
+|||
+
+{define-class public AutoCompleteTextField {inherits CoreTextField}
+  
+  let private active-tf:#AutoCompleteTextField
+  let private init?    :bool = false
+  
+  field public menu-pane:#MenuPane
+  
+  field private _menu-height:any = null
+  
+  field private _proposed-values:#{Array-of String}
+  
+  || added by Akira Mori
+  field public-get ignore-case?:bool
+
+  {constructor public {default
+                          data-model:#StringDataModel = null,
+                          value:#String = null,
+                          prompt:#String = null,
+                          max-chars:int = -1,
+                          proposed-values:#{Array-of String} = null,
+                          menu-height:any = null,
+                          ignore-case?:bool = true,
+                          ...
+                      }
+    {construct-super
+        {splice ...}
+    }
+    set self._proposed-values = proposed-values
+    set self.menu-height = menu-height
+    || added by Akira Mori
+    set self.ignore-case? = ignore-case?
+    
+    {self.add-event-handler
+        {on ValueChanged do
+            {self.show-menu}
+        }
+    }
+    
+    {self.add-event-handler
+        {on FocusOut do
+            {self.hide-menu}
+        }
+    }
+    
+    {AutoCompleteTextField.init-auto-complete-text-field}
+  }
+  
+  {define-proc private {init-auto-complete-text-field}:void
+    {if AutoCompleteTextField.init?
+     then
+        {return}
+    }
+    
+    let constant gui-manager:GuiManager = {get-gui-manager}
+    
+    {gui-manager.add-event-handler
+        {on e:KeyPress do
+            
+            {if-non-null active-tf:AutoCompleteTextField = AutoCompleteTextField.active-tf
+             then
+                {active-tf.handle-key-event-on-menu e}
+            }
+        }
+    }
+    
+    set AutoCompleteTextField.init? = true
+  }
+  
+  {getter private {has-focus?}:bool
+    
+    let focus-manager:#FocusManager = {self.get-focus-manager}
+    
+    {return
+        (focus-manager != null)
+        and (focus-manager.keyboard-focus-target == self.ui-object)
+    }
+  }
+  
+  {method protected {show-menu}:void
+    
+    {if-non-null self.menu-pane
+     then
+        {self.expand-menu}
+        {return}
+    }
+    
+    
+    {if (not self.has-focus?) or (self._proposed-values) == null
+     then
+        {if-non-null self.menu-pane
+         then
+            {self.hide-menu}
+        }
+        
+        {return}
+    }
+    
+    set AutoCompleteTextField.active-tf = self
+    
+    {self.expand-menu}
+    
+  }
+  
+  {method private {expand-menu}:void
+    
+    {if-non-null self.menu-pane
+     then
+        {self.menu-pane.hide}
+    }
+    
+    set self.menu-pane =
+        {DropdownMenuPane
+            background = "transparent",
+            control-color = "white",
+            use-look-and-feel? = false,
+            menu-height = self._menu-height,
+            {on DetachEvent do
+                {if not self.has-focus?
+                 then
+                    set self.menu-pane = null
+                }
+            }
+        }
+    
+    let filter-values:{Array-of String} =
+        {self.proposed-values.filter-clone
+            {proc {str:String}:bool
+                {return
+                    || fixed by Akira Mori
+                    ||{str.prefix? self.value}
+                    {str.prefix? self.value, ignore-case? = self.ignore-case?}
+                }
+            }
+        }
+    
+    {if filter-values.size == 1
+     then
+        let candidate-value:String = filter-values[0]
+        {if candidate-value == self.value
+         then
+            {self.hide-menu}
+            {return}
+        }
+     elseif filter-values.empty?
+     then
+        {self.hide-menu}
+        {return}
+    }
+    
+    {self.menu-pane.clear}
+    
+    {for str:String in filter-values do
+        {self.menu-pane.add
+            {MenuAction
+                label = str,
+                {on Action do
+                    {self.set-value-with-events str}
+                    {self.hide-menu}
+                    set AutoCompleteTextField.active-tf = null
+                }
+            }
+        }
+    }
+    
+    {self.menu-pane.show-adjacent
+        self,
+        alongside? = false,
+        {self.layout.get-bounds},
+        start-traversal? = true
+    }
+    
+||--    {self.menu-pane.request-key-focus}
+  }
+  
+  {method protected {hide-menu}:void
+    
+    {if self.menu-pane == null
+     then
+        {return}
+    }
+    
+    {self.menu-pane.hide}
+    
+    set self.menu-pane = null
+    set AutoCompleteTextField.active-tf = null
+    
+  }
+  
+  {getter public {proposed-values}:#{Array-of String}
+    {return self._proposed-values}
+  }
+  
+  {setter public {proposed-values proposed-values:#{Array-of String}}:void
+    set  self._proposed-values = proposed-values
+  }
+  
+  {method protected {handle-key-event-on-menu e:KeyPress}:void
+    
+    {if not e.insertable?
+     then
+        {switch e.value
+         case KeyPressValue.up,KeyPressValue.down do
+            {self.menu-pane.handle-event e}
+         case KeyPressValue.esc do
+            set AutoCompleteTextField.active-tf = null
+         case KeyPressValue.tab do
+            set AutoCompleteTextField.active-tf = null
+            {self.hide-menu}
+            {self.ui-object.on-key-press e}
+         case KeyPressValue.backspace do
+            {self.ui-object.handle-event e}
+        }
+        
+        {return}
+     else
+        {switch e.value
+         case KeyPressValue.backspace do
+            {self.ui-object.on-key-press e}
+        
+            {return}
+        }
+        
+    }
+    
+||--    {switch e.value
+||--     case KeyPressValue.up,KeyPressValue.down , KeyPressValue.esc do
+||--     case KeyPressValue.backspace do
+||--        {self.ui-object.on-key-press e}
+||--     else
+        {self.set-value-with-events self.value&e.value}
+||--    }
+  }
+  
+  {method public {on-key-press e:KeyPress}:void
+    {switch e.value
+     case KeyPressValue.down do
+        {self.show-menu}
+    }
+    {super.on-key-press e}
+  }
+}

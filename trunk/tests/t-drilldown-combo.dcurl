@@ -1,0 +1,98 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+{curl 6.0, 7.0 applet}
+{curl-file-attributes character-encoding = "shift-jis"}
+{applet manifest = "manifest.mcurl"}
+
+{import * from COM.CURLAP.ADVANCED-UI.CONTROLS}
+{api-version-switch
+ case "7.0+" do
+    || do nothing
+ case "6.0+" do
+    {import * from COM.CURL.GUI.STYLED-CONTROLS}
+    {install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
+}
+
+{def base-frame = {Frame}}
+
+{do
+
+    def records = 
+        {RecordSet
+            {RecordFields
+                {RecordField "first", domain = String},
+                {RecordField "second", domain = String},
+                {RecordField "third", domain = int},
+                {RecordField "fourth", domain = double}
+            },
+            {RecordData first = "mori", second = "akira", third = 27, fourth = 1.0},
+            {RecordData first = "mori", second = "akira", third = 27, fourth = 2.0},
+            {RecordData first = "mori", second = "akira", third = 28, fourth = 3.0},
+            {RecordData first = "mori", second = "akira", third = 28, fourth = 10.0},
+            {RecordData first = "mori", second = "akira", third = 30, fourth = 20.0},
+            {RecordData first = "okada", second = "hitoshi", third = 1, fourth = 40.0},
+            {RecordData first = "okada", second = "hitoshi", third = 2, fourth = 5.0},
+            {RecordData first = "okada", second = "hitoshi", third = 3, fourth = 4.0},
+            {RecordData first = "okada", second = "hitoshi", third = 3, fourth = 50.0},
+            {RecordData first = "okada", second = "taro", third = 3, fourth = 6.0},
+            {RecordData first = "okada", second = "taro", third = 4, fourth = 7.0},
+            {RecordData first = "okada", second = "jiro", third = 5, fourth = 8.0},
+            {RecordData first = "mori", second = "aki-na", third = 27, fourth = 9.0},
+            {RecordData first = "kodan", second = "xxxx", third = 22, fourth = 8.0},
+            {RecordData first = "kodan", second = "yyyy", third = 25, fourth = 7.0},
+            {RecordData first = "kodan", second = "xxxx", third = 22, fourth = 6.0},
+            {RecordData first = "kodan", second = "yyyy", third = 25, fourth = 5.0},
+            {RecordData first = "mori", second = "ero", third = 24, fourth = 9.0}
+        }
+
+    def first-combo = 
+        {DrillDownComboBox 
+            "first", 
+            records
+        }
+    def second-combo = {first-combo.create-child "second"}
+    def third-combo1 = {second-combo.create-child "third"}
+    def third-combo2 = {second-combo.create-child "third"}
+    def fourth-combo1 = {third-combo1.create-child "fourth"}
+    def fourth-combo2 = {third-combo2.create-child "fourth"}
+
+    {base-frame.add
+        {spaced-vbox
+            {text Drilldown ComboBox},
+            {spaced-hbox
+                first-combo, 
+                second-combo,
+                {spaced-vbox third-combo1, third-combo2},
+                {spaced-vbox fourth-combo1, fourth-combo2} 
+            },
+            {RecordGrid 
+                record-source = records
+            }
+        },
+        replace? = true
+    }
+}
+
+{View
+    base-frame,
+    visibility = "normal",
+    {on WindowClose do
+        {exit}
+    }
+}

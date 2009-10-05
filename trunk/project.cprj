@@ -1,0 +1,18 @@
+|| *******************************************************
+|| *** THIS FILE IS AUTOMATICALLY UPDATED BY SURGE LAB ***
+|| ***              DO NOT MODIFY IT BY HAND           ***
+|| *******************************************************
+
+{project
+    version = 1,
+    manifest-location = "manifest.mcurl",
+    api-version = "6.0",
+    compiler-directives = "careful? = true",
+    use-style-sheets? = false,
+    style-package-name = "COM.CURL.GUI.STYLED-CONTROLS",
+    style-sheet-name = "DEFAULT-STYLE-SHEET",
+    {target
+        name = "ディフォルト",
+        target-url-name = "deploy-default"
+    }
+}

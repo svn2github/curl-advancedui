@@ -1,0 +1,4 @@
+{curl 6.0, 7.0 manifest}
+{curl-file-attributes character-encoding = "shift-jis"}
+{manifest COM.CURLAP.AdvancedUI}
+

@@ -1,0 +1,58 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Hiroki Mino
+|||
+
+{curl 6.0, 7.0 applet}
+{curl-file-attributes character-encoding = "utf8"}
+{applet manifest = "manifest.mcurl"}
+
+{import * from COM.CURLAP.ADVANCED-UI.CONTROLS}
+{import * from COM.CURLAP.ADVANCED-UI.CONTAINERS}
+{api-version-switch
+ case "7.0+" do
+    || do nothing
+ case "6.0+" do
+    {import * from COM.CURL.GUI.STYLED-CONTROLS}
+    {install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
+}
+
+{value
+    {FishEyeMenuBar
+        valign="bottom",
+        width=25cm,
+        height=5cm,
+        click-animation="warp",
+        defalt-icon-size=3cm,
+        {FishEyeSubMenu {url "images/archive.png"},
+            {on PointerPress do
+                    {popup-message ""}
+            }},
+        {FishEyeSubMenu {url "images/bar_chart.png"}},
+        {FishEyeSubMenu {url "images/gazou2.bmp"}},
+        {FishEyeSubMenu {url "images/cd.png"}},
+        {FishEyeSubMenu {url "images/configuration.png"}},
+        {FishEyeSubMenu {url "images/copy.png"}},
+        {FishEyeSubMenu {url "images/database.png"}},
+        {FishEyeSubMenu {url "images/email.png"}},
+        {FishEyeSubMenu {url "images/folder_lock.png"}},
+        {FishEyeSubMenu {url "images/image.png"}},
+        {FishEyeSubMenu {url "images/messenger.png"}},
+        {FishEyeSubMenu {url "images/movie.png"}}
+
+    }
+}
+           

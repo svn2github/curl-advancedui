@@ -1,0 +1,576 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Hitoshi Okada, Takeshi Yamamoto
+|||
+
+||
+|| TODO:
+||   1. Mouse events
+||   2. Some controls (RecotdGrid ...)
+||   3. test view design
+
+
+|| NOTE:
+||   Rule
+||    All controls and containers need Visual.test-name.
+||
+||   !RTE restriction!
+||     When show's "modal?" argument in Dialog is true, it doesn't work.
+||      (And also, popup-message, popup-question doesn't work.) 
+||      *if false, it does work.
+
+{import * from CURL.ENGINE.APPLET}
+
+||
+|| enabled? or disabled?
+||
+{let public ui-motion-enable?:bool = true}
+
+||
+|| UIMotion
+||
+{define-enum package UIMotion
+    set-value,
+    event,
+    sleep,
+    screen-transition
+}
+
+||
+|| UIContextValueChanged event
+||
+{define-class package UIContextValueChanged
+  {inherits Event}
+}
+
+||
+|| UIContext
+||
+{define-class public open UIContext
+  {inherits EventTarget}
+
+  let private instance:#UIContext
+  field package-get private-set context:{HashTable-of String, Graphic}
+
+  {constructor private {default}
+
+    set self.context = {{HashTable-of String, Graphic}}
+    {self.register-all}
+  }
+
+  || create new instance
+  {define-proc public inline {get-instance}:UIContext
+
+    {return 
+        {if-non-null instance = UIContext.instance then
+            instance
+         else
+            set UIContext.instance = {UIContext}
+            {non-null UIContext.instance}
+        }
+    }
+  }
+
+  || register 
+  {method public open {register graphic:Graphic}:void
+
+    {self.internal-register graphic}
+    {self.handle-event {UIContextValueChanged}}
+  }
+
+  || register all graphics
+  {method public open {register-all}:void
+
+    {self.internal-register {get-the-applet}.document.document-graphic}
+    {self.handle-event {UIContextValueChanged}}
+  }
+
+  || lookup Graphic
+  {method public open {lookup name:String}:Graphic
+   
+    {return self.context[name]}
+  }
+
+  || clear
+  {method public open {clear}:void
+    
+    {self.context.clear}
+  }
+
+  || dump for debugging
+  {method package {dump}:void
+
+    {for value key key in self.context do
+        {dump key, value}
+    }
+  }
+
+  || - - private - -
+  || register
+  {method private {internal-register graphic:Graphic}:void
+
+    || parse hierarchy and register graphic children
+    {if-non-null test-name = graphic.test-name then
+        def (key, exists?) = {self.context.get-if-exists test-name}
+        {if not exists? then
+            {self.context.set test-name, graphic}
+        }
+    }
+    {if-non-null gc = 
+        {type-switch graphic 
+         case v:BaseFrame do
+            v.graphical-children
+         case v:Box do
+            v.graphical-children
+         else
+            null
+        }
+     then
+        {for v in gc do
+            {self.internal-register v}
+        }
+    }
+  }
+}
+
+||
+|| UIMotionHistory
+||
+{define-class package UIMotionHistory
+
+  field package-get private-set action:UIMotion
+  field package-get private-set name:String
+  field package-get private-set value:any
+  field package-get private-set elapsed:Time
+
+  {constructor package {default
+                           action:UIMotion,
+                           name:String,
+                           value:any,
+                           elapsed:Time
+                       }
+
+    set self.action = action
+    set self.name = name
+    set self.value = value
+    set self.elapsed = elapsed
+  }
+}
+
+||
+|| UITestActionCapture
+||
+{define-class package UIMotionCapture
+
+  field private actions:{Array-of UIMotionHistory}
+  field private stopwatch:StopWatch
+  field private capture?:bool
+  field private capture-events:{HashTable-of String, EventHandler}
+
+  {constructor package {default}
+
+    set self.actions = {{Array-of UIMotionHistory}}
+    set self.stopwatch = {StopWatch}
+    set self.capture-events = {{HashTable-of String, EventHandler}}
+
+    {{UIContext.get-instance}.add-event-handler 
+        {on e:UIContextValueChanged do
+            {self.attach-capture-event}
+        }
+    }
+
+    {self.capture-events.set 
+        "CommandButton",
+        {on e:Action at v:CommandButton do
+            {if self.capture? then
+                {self.actions.append 
+                    {UIMotionHistory UIMotion.event, {non-null v.test-name}, 
+                        Action, {self.stopwatch.elapsed}}} 
+                {self.stopwatch.reset}
+            }
+        }
+    }
+
+    {self.capture-events.set 
+        "ValueControl",
+        {on e:FocusOut at v:ValueControl do
+            {if self.capture? then
+                {self.actions.append 
+                    {UIMotionHistory UIMotion.set-value, {non-null v.test-name},
+                        v.value-as-any, {self.stopwatch.elapsed}}}
+                {self.stopwatch.reset}
+            }
+        }
+    }
+
+    {self.capture-events.set
+        "BaseFrame",
+        {on e:DetachEvent at v:BaseFrame do
+            {if self.capture? then
+                {self.actions.append 
+                    {UIMotionHistory UIMotion.screen-transition, 
+                        {non-null v.test-name}, AttachEvent, 
+                        {self.stopwatch.elapsed}}}
+                {self.stopwatch.reset}
+                
+                || load new frame to context, when screen transition. 
+                {after 0s do
+                    {{UIContext.get-instance}.register-all}
+                }
+            }
+        }
+    }
+  }
+
+  || start capturing
+  {method package {start}
+
+    set self.capture? = true
+    {self.attach-capture-event}
+    {self.stopwatch.start}
+  }
+
+  || stop capturing
+  {method package {stop}
+
+    set self.capture? = false
+    {self.stopwatch.stop}
+    {self.detach-capture-event}
+  }
+  
+  || write test code
+  {method package {write-code 
+                      url:Url,
+                      sleep?:bool = true,
+                      sleep-second:Time = -1s
+                  }:void
+    
+    def p-sleep = 
+        {proc {buf:StringBuf, second:Time}:void
+            {buf.concat "    \{handler.sleep " & second & "\} \n"}
+        }
+    def p-handle-event =
+        {proc {buf:StringBuf, name:String, event-type:ClassType}:void
+            {buf.concat 
+                "    \{handler.handle-event \"" & name & "\", \{" &  
+                event-type.name & "\}\} \n"
+            }
+        }
+    def p-set-value = 
+        {proc {buf:StringBuf, name:String, value:any}:void
+            def string-value = 
+                {type-switch value
+                 case v:bool do
+                    {if v then "true" else "false"}
+                    || TODO: any other types?
+                 else
+                    "\"" & value & "\""
+                }
+            {buf.concat
+                "    \{handler.set-value \"" & 
+                name & "\", " & string-value & "\} \n"
+            }
+        }
+
+    def buf = {StringBuf}
+    {buf.concat "\|\|\| This following is generated code. \n"}
+    {buf.concat "\{do \n"}
+    {buf.concat "    def handler = \{UIMotionHandler.get-instance\} \n\n"}
+    {for v in self.actions do
+        || sleep
+        {if sleep? then
+            {p-sleep buf, 
+                {if sleep-second > 0s then
+                    sleep-second
+                 else
+                    v.elapsed
+                }
+            }
+        }
+        {switch v.action
+         case UIMotion.set-value do
+            || set value
+            {p-handle-event buf, v.name, FocusIn}
+            {p-set-value buf, v.name, v.value}
+            {p-handle-event buf, v.name, FocusOut}
+         case UIMotion.event do
+            || some events
+            {p-handle-event buf, v.name, (v.value asa ClassType)}
+         case UIMotion.screen-transition do
+            || screen transition
+            {buf.concat "    \{handler.refresh-context\} \n"}
+
+        }
+    }
+    {buf.concat "\}"}
+    {write-to url, {buf.to-String}}
+  }
+
+
+  || - - private - -
+
+  || attach events
+  {method private {attach-capture-event}:void
+
+    || TODO: If test-name does not exists, run the UIContext.register-all.
+    {for graphic key k in {UIContext.get-instance}.context do
+        {if-non-null event-handler =
+            {type-switch graphic 
+             case button:CommandButton do
+                self.capture-events["CommandButton"]
+             case control:ValueControl do
+                self.capture-events["ValueControl"]
+             case frame:BaseFrame do
+                self.capture-events["BaseFrame"]
+             else
+                null
+            }
+         then 
+            def event-target = graphic asa EventTarget
+            {if not {event-target.event-handler-present? event-handler} then
+                {event-target.add-event-handler event-handler}
+            }
+        }
+    }
+  }
+
+  || detach events
+  {method private {detach-capture-event}:void
+
+    {for graphic key k in {UIContext.get-instance}.context do
+        {if-non-null event-handler =
+            {type-switch graphic 
+             case button:CommandButton do
+                self.capture-events["CommandButton"]
+             case control:ValueControl do
+                self.capture-events["ValueControl"]
+             case frame:BaseFrame do
+                self.capture-events["BaseFrame"]
+             else
+                null
+            }
+         then 
+            def event-target = graphic asa EventTarget
+            {if {event-target.event-handler-present? event-handler} then
+                {event-target.remove-event-handler event-handler}
+            }
+        }
+    }
+  }
+}
+
+||
+|| UIMotionHandler
+||
+{define-class public open UIMotionHandler
+
+  field private context:UIContext
+  field public history:RecordSet
+  let private instance:#UIMotionHandler
+  
+  {constructor private {default}
+    
+    set self.context = {UIContext.get-instance}
+    set self.history = 
+        {RecordSet
+            {RecordFields
+                {RecordField "name"},
+                {RecordField "action"},
+                {RecordField "value"}
+            }
+        }
+  }
+
+  || get instance
+  {define-proc public {get-instance}:UIMotionHandler
+    
+    {if UIMotionHandler.instance == null then
+        set UIMotionHandler.instance = {UIMotionHandler}
+    }
+    {return {non-null UIMotionHandler.instance}}
+  }
+  
+  || append
+  {method private {new-history-record
+                      action:String, name:String, value:String
+                  }:RecordData
+    def r = {RecordData}
+    set r["action"] = action
+    set r["name"] = name
+    set r["value"] = value
+    {return r}
+  }
+
+  || get graphic(controls, containers)
+  {method public open {get-graphic name:String}:Graphic
+    
+    {return {self.context.lookup name}}
+  }
+
+  || set value of controls
+  {method public open {set-value name:String, value:any}:void
+    set ({self.get-graphic name} asa ValueControl).value-as-any = value
+    {self.history.append
+        {self.new-history-record "set value", name, value & ""}}
+  }
+
+  || get value of controls
+  {method public open {get-value name:String}:any
+    {return ({self.get-graphic name} asa ValueControl).value-as-any}
+  }
+
+  || handle-event
+  {method public open {handle-event name:String, event:Event}:void
+    {({self.get-graphic name} asa EventTarget).handle-event event}
+    {if not (event isa FocusIn or event isa FocusOut) then
+        {self.history.append
+            {self.new-history-record "fire event", name, event & ""}}
+    }
+  }
+
+  || refresh-context
+  {method public open {refresh-context}:void
+
+    ||{self.context.clear}
+    {self.context.register-all}
+  }
+  
+  || sleep
+  ||  NOTE: it's not the precise. You can use 'after' instead of this.
+  {method public open {sleep second:Time}:void
+    let done?:bool
+    {after second do 
+        set done? = true
+    }
+    {while not done? do
+        {dispatch-events true}
+    }
+    {self.history.append
+        {self.new-history-record "sleep", "wait time", second & ""}}
+  }
+
+  || Run "Action" event on Frame by the "Label" name on CommandButton.
+  {method public open {run-action-by-label-name 
+                          frame-name:String, 
+                          label-name:String
+                      }:void
+
+    def p = 
+        {proc {graphic:Graphic, label-name:String}:void
+            || parse hierarchy and register graphic children
+            {if graphic isa CommandButton then
+                def button = graphic asa CommandButton
+                {if {button.label.get-text} == label-name then
+                    {button.handle-event {Action}}
+                }
+            }
+            {if-non-null gc = 
+                {type-switch graphic 
+                 case v:BaseFrame do
+                    v.graphical-children
+                 case v:Box do
+                    v.graphical-children
+                 else
+                    null
+                }
+             then
+                {for v in gc do
+                    {p v, label-name}
+                }
+            }
+        }
+    
+    {p {self.get-graphic frame-name}, label-name}
+  }
+}
+
+{if ui-motion-enable? then
+    {after 1s do
+        || UITestView
+        def capture = {UIMotionCapture}
+        def running = {Frame}
+        def dialog = 
+            {Dialog
+                height = 15cm, width = 10cm,
+                {TabContainer
+                    height = 15cm, width = 10cm,
+                    {TabPane
+                        label = "Capture", || TODO: Record
+                        {spaced-vbox
+                            {spaced-hbox
+                                {CommandButton
+                                    label = "start",
+                                    height = 1cm, font-size = 16pt,
+                                    {on Action do
+                                        {capture.start}
+                                        {running.add {text font-size = 20pt, Recording.......}, replace? = true} 
+                                    }
+                                },
+                                
+                                {CommandButton
+                                    label = "stop",
+                                    height = 1cm, font-size = 16pt,
+                                    {on Action do
+                                        {capture.stop}
+                                        {if-non-null url = {choose-file style = FileDialogStyle.save-as}
+                                         then
+                                            {capture.write-code url}
+                                            {running.add {text }, replace? = true}
+                                        }
+                                    }
+                                }|#,
+                                
+                                {CommandButton
+                                    label = "dump",
+                                    height = 1cm, font-size = 16pt,
+                                    {on Action do
+                                        {{UIContext.get-instance}.dump}
+                                    }
+                                }#|
+                            },
+                            {Fill height = 5cm},
+                            running
+                        }
+                    },
+                    {TabPane
+                        label = "Test",
+                        {spaced-vbox
+                            {CommandButton
+                                label = "play",
+                                height = 1cm, font-size = 16pt,
+                                {on Action do
+                                    {if-non-null url = {choose-file} then
+                                        {evaluate url}
+                                    }
+                                }
+                            },
+                            {text Trace},
+                            {RecordGrid 
+                                height = 12cm,
+                                record-source = 
+                                    {UIMotionHandler.get-instance}.history
+                            }
+                        }
+                    }
+                }
+            }
+        ||{dialog.set-opacity 0.5}
+        {dialog.show
+            title = "Curl Simple UI Test",
+            modal? = false
+        }
+    }
+}

@@ -1,0 +1,122 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+{curl 6.0, 7.0 applet}
+{curl-file-attributes character-encoding = "shift-jis"}
+{applet manifest = "manifest.mcurl"}
+
+{import * from COM.CURLAP.ADVANCED-UI.EVENTS}
+{api-version-switch
+ case "7.0+" do
+    || do nothing
+ case "6.0+" do
+    {import * from COM.CURL.GUI.STYLED-CONTROLS}
+    {install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
+}
+
+{def base-frame = {Frame}}
+
+{do
+    || from event.
+    let rf:RadioFrame =
+        {RadioFrame 
+            {spaced-hbox
+                {RadioButton label = "user", radio-value = "user"},
+                {RadioButton label = "guest", radio-value = "guest"}
+            },
+            value = "user",
+            {on e:ValueChanged at v:RadioFrame do
+                || do nothing 
+                {dump e, v}
+            }
+        }
+
+    || to event.
+    let tf1:TextField = 
+        {TextField 
+            height = 1cm, font-size = 16pt,
+            {on e:NotifyEvent at v:TextField do
+                let value:String =
+                    (e.subject asa ValueControl).value-as-any
+                    || You can use ValueControl instead of the following code
+                    || to remove the decendency.
+                    ||{if e.subject isa RadioFrame then
+                    ||    (e.subject asa RadioFrame).value
+                    || else
+                    ||    (e.subject asa TextField).value 
+                    ||}
+                {if value == "user" then
+                    set v.enabled? = true
+                    set v.value = ""
+                 else
+                    set v.enabled? = false
+                    {if e.subject-event-class == ValueChanged then
+                        set value = {value.to-upper-clone}
+                    }
+                    set v.value = value
+                }
+                {dump e, v}
+            }
+        }
+
+    let tf2:TextField = 
+        {TextField 
+            height = 1cm, font-size = 16pt,
+            {on e:NotifyEvent at v:TextField do
+                {if (e.subject asa RadioFrame).value == "user" then
+                    set v.enabled? = true
+                    set v.value = ""
+                 else
+                    set v.enabled? = false
+                    set v.value = (e.subject asa RadioFrame).value
+                }
+            },
+            {on e:ValueChanged at TextField do
+                || do nothing
+            }
+        }
+
+    let manager:EventManager = {EventManager}
+    {manager.register rf, ValueChanged, tf1, NotifyEvent}
+    {manager.register rf, ValueChanged, tf2, NotifyEvent}
+    {manager.register tf2, ValueChanged, tf1, NotifyEvent}
+
+    {base-frame.add
+        {spaced-vbox
+            rf,
+            tf1, 
+            tf2,
+            {CommandButton 
+                label = "remove",
+                {on Action do
+                    ||{manager.unregister id2}
+                    {manager.clear}
+                }
+            }
+        },
+        replace? = true
+    }
+}
+
+{View 
+    base-frame,
+    visibility = "normal",
+    {on WindowClose do
+        {exit}
+    }
+}

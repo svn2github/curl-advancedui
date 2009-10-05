@@ -1,0 +1,105 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Hitoshi Okada
+|||
+
+
+||
+|| WizardManagementFrame
+||
+{define-class public open WizardManagementFrame
+  {inherits Frame}
+
+  field constant private wizard-frames:{Array-of Frame}
+
+  field private _current-page:int
+
+  || current page number
+  {getter public open {current-page}:int
+    {return self._current-page + 1}
+  }
+  || total page size
+  {getter public open {total-page}:int
+    {return self.wizard-frames.size}
+  }
+  || first page?
+  {getter public open {first?}:bool
+    {return self._current-page == 0}
+  }
+  || last page?
+  {getter public open {last?}:bool
+    {return self.current-page == self.total-page}
+  }
+
+  || constructor
+  {constructor public {default
+                          wizard-frames:{Array-of Frame},
+                          start-page:int = 1,
+                          ...
+                      }
+    {if wizard-frames.size < 1 or start-page < 1 then
+        {throw {IllegalArgumentException "Need more than 1 frame for wizard."}}
+    }
+    set self._current-page = start-page - 1
+    set self.wizard-frames = wizard-frames
+    {construct-super {splice ...}}
+
+    {self.inner-move}
+  }
+
+  {method public open {move-next}:int
+    {if self.current-page == self.total-page then
+        {return self.total-page}
+    }
+    {inc self._current-page}
+    {return {self.inner-move}}
+  }
+
+  || move previous page
+  {method public open {move-previous}:int
+    {if self._current-page == 0 then
+        {return 0}
+    }
+    {dec self._current-page}
+    {return {self.inner-move}}
+  }
+  
+  || move last page
+  {method public open {move-last}:int
+    set self._current-page = self.total-page - 1
+    {return {self.inner-move}}
+  }
+  
+  || move first page
+  {method public open {move-first}:int
+    set self._current-page = 0
+    {return {self.inner-move}}
+  }
+
+  || move page which indicate.
+  {method public open {move page:int}:int
+    set self._current-page = page - 1
+    {return {self.inner-move}}
+  }
+
+
+  || - - protected methods - -
+
+  {method protected {inner-move}:int 
+    {self.add self.wizard-frames[self._current-page], replace? = true}
+    {return self.current-page}
+  }
+}

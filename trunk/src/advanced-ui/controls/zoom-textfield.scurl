@@ -1,0 +1,87 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+||
+|| ZoomTextField
+||
+{define-class public open ZoomTextField
+  {inherits TextField}
+
+  field public popup-width:any
+  field public popup-height:any
+  field public popup-font-size:any
+  field public popup-color:FillPattern
+  field public popup-title:String
+
+  || constructor
+  {constructor public {default
+                          popup-width:any = null,
+                          popup-height:any = 1cm,
+                          popup-font-size:any = 20pt,
+                          popup-color:FillPattern = "black",
+                          popup-title:String = {host-localize "Pop-up Window"},
+                          ...
+                      }
+    set self.popup-width = popup-width
+    set self.popup-height = popup-height
+    set self.popup-font-size = popup-font-size
+    set self.popup-color = popup-color
+    set self.popup-title = popup-title
+
+    {construct-super {splice ...}}
+  }
+
+  || @Override
+  {method public open {on-pointer-release e:PointerRelease}:void
+    {self.popup-text-field}
+    {super.on-pointer-release e}
+  }
+
+  || This method might be used by this super class.
+  {method protected open {popup-text-field}:void
+    def popup-text-field = 
+        {TextField 
+            value = self.value,
+            width = self.popup-width,
+            height = self.popup-height,
+            font-size = self.popup-font-size,
+            color = self.popup-color
+        }
+    def dialog = 
+        {Dialog
+            popup-text-field,
+            {on DialogShow do
+                {popup-text-field.request-key-focus}
+            }
+        }
+
+    {popup-text-field.add-event-handler
+        {on e:KeyPress at v:TextField do
+            {if e.value == KeyPressValue.enter or 
+                e.value == KeyPressValue.tab 
+             then
+                set self.value = v.value
+                {dialog.close Dialog.ok}
+            }
+        }
+    }
+    {dialog.show
+        title = self.popup-title
+    }
+  }
+}

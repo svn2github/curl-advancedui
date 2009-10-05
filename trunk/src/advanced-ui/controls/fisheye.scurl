@@ -1,0 +1,204 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hiroki Mino
+|||
+
+{curl-file-attributes character-encoding = "utf8"}
+
+{import * from CURL.GRAPHICS.IMAGEFILTER}
+{define-class public FishEyeSubMenu {inherits Frame}
+  field public icon:Url
+  field public flg:bool=false
+
+  {constructor public {default
+                   icon:Url,
+                   enabled?:bool=true,
+                   ...}
+    set self.icon=icon
+    
+    {construct-super.Frame
+        height=2cm,
+        width=2cm,
+        background={FillPattern.from-url self.icon},
+        {splice ...}
+    }
+  }
+}
+{define-enum ClickAnimation
+    twirl=1,
+    flash=2,
+    warp=3
+}
+{define-class public FishEyeMenuBar {inherits HBox}
+  field private defalt-icon-size:Distance
+  field deg:Angle=0deg
+  field click-animation:ClickAnimation
+  {constructor public {default
+                  defalt-icon-size:Distance=2cm,
+                  click-animation:ClickAnimation="twirl",
+                  ...}
+    set self.defalt-icon-size=defalt-icon-size
+    set self.click-animation=click-animation
+    {construct-super.HBox
+        {on PointerLeave do
+            {for child in self.graphical-children do
+                set child.width  = self.defalt-icon-size
+                set child.height = self.defalt-icon-size
+            }
+        },
+        {on e:PointerMotion do
+            {for child in self.graphical-children do
+                let (x:Distance, y:Distance, valid?:bool)={transform-coordinates-with-test  0pt,0pt,child,self}
+                let f-max:Distance={abs e.x - (x + (self.defalt-icon-size asa Distance) /2)}
+                {self.modify-size self.defalt-icon-size,f-max,child}
+            }
+        },
+        {splice ...}
+        
+    }
+    {self.set-animation}
+
+  }
+  {method {set-animation}:void
+    {for child in self.graphical-children do
+        let timer:Timer= {child.animate
+                             interval=0.1s,
+                             repeat=0,
+                             {on TimerEvent do
+                                 {switch self.click-animation
+                                  case ClickAnimation.twirl do
+                                     {self.click-twirl child}
+                                  case ClickAnimation.flash do
+                                     {self.click-flash child}
+                                  case ClickAnimation.warp do
+                                     {self.click-warp child}
+                                 }
+
+                             }
+                         }
+        {child.add-event-handler
+            {on PointerPress do
+                set timer.repeat=-1
+            }
+        }
+        {child.add-event-handler
+            {on PointerLeave do
+                set timer.repeat=0
+                set child.background=  {FillPattern.from-url (child asa FishEyeSubMenu).icon}
+                set self.deg = 0deg
+            }
+        }
+        {child.add-event-handler
+            {on FocusOut do
+                set timer.repeat=0
+                set child.background=  {FillPattern.from-url (child asa FishEyeSubMenu).icon}
+                set self.deg = 0deg
+            }
+        }
+        
+    }
+  }
+  {method {modify-size icon-size:Distance,d:Distance,g:Graphic}:void
+    {if d < 1.2cm then
+        set g.width  = icon-size + 2cm
+        set g.height = icon-size + 2cm
+     elseif d < 1.3cm then
+        set g.width  = icon-size + 1.9cm
+        set g.height = icon-size + 1.9cm
+     elseif d < 1.4cm then
+        set g.width  = icon-size + 1.8cm
+        set g.height = icon-size + 1.8cm
+     elseif d < 1.5cm then
+        set g.width  = icon-size + 1.7cm
+        set g.height = icon-size + 1.7cm
+     elseif d < 1.6cm then
+        set g.width  = icon-size + 1.6cm
+        set g.height = icon-size + 1.6cm
+     elseif d < 1.7cm then
+        set g.width  = icon-size + 1.5cm
+        set g.height = icon-size + 1.5cm
+     elseif d < 1.8cm then
+        set g.width  = icon-size + 1.4cm
+        set g.height = icon-size + 1.4cm
+     elseif d < 1.9cm then
+        set g.width  = icon-size + 1.3cm
+        set g.height = icon-size + 1.3cm
+     elseif d < 2cm then
+        set g.width  = icon-size + 1.2cm
+        set g.height = icon-size + 1.2cm
+     elseif d < 2.1cm then
+        set g.width  = icon-size + 1.1cm
+        set g.height = icon-size + 1.1cm
+     elseif d < 2.2cm then
+        set g.width  = icon-size + 1.0cm
+        set g.height = icon-size + 1.0cm
+     elseif d < 2.3cm then
+        set g.width  = icon-size + .9cm
+        set g.height = icon-size + .9cm
+     elseif d < 2.4cm then
+        set g.width  = icon-size + .8cm
+        set g.height = icon-size + .8cm
+     elseif d < 2.5cm then
+        set g.width  = icon-size + .7cm
+        set g.height = icon-size + .7cm
+     elseif d < 2.6cm then
+        set g.width  = icon-size + .6cm
+        set g.height = icon-size + .6cm
+     elseif d < 2.7cm then
+        set g.width  = icon-size + .5cm
+        set g.height = icon-size + .5cm
+     elseif d < 2.8cm then
+        set g.width  = icon-size + .4cm
+        set g.height = icon-size + .4cm
+     elseif d < 2.9cm then
+        set g.width  = icon-size + .3cm
+        set g.height = icon-size + .3cm
+     elseif d < 3cm then
+        set g.width  = icon-size + .2cm
+        set g.height = icon-size + .2cm
+     elseif d < 3.1cm then
+        set g.width  = icon-size + .1cm
+        set g.height = icon-size + .1cm
+     else
+        set g.width=icon-size
+        set g.height=icon-size
+    }
+
+  }
+  {method {click-twirl child:Graphic}:void
+    set self.deg= self.deg + 20deg
+    set child.background=  {twirl angle = self.deg ,  {FillPattern.from-url (child asa FishEyeSubMenu).icon}}
+  }
+  {method {click-flash child:Graphic}:void
+    {if self.defalt-icon-size + 25mm == child.width then
+        set child.width  = self.defalt-icon-size + 20mm
+        set child.height = self.defalt-icon-size + 20mm
+     else
+        set child.width  = self.defalt-icon-size + 25mm
+        set child.height = self.defalt-icon-size + 25mm
+    }
+  }
+  {method {click-warp child:Graphic}:void
+    let src:DisplacementMesh = {DisplacementMesh 10, 10}
+
+    let dst:DisplacementMesh = {DisplacementMesh 10, 10}
+    {dst.perturb 0.75}
+    set child.background={warp
+                             {FillPattern.from-url (child asa FishEyeSubMenu).icon},            dst,
+                             src
+                         }
+  }
+}

@@ -1,0 +1,94 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+{curl 6.0, 7.0 applet}
+{curl-file-attributes character-encoding = "utf8"}
+{applet manifest = "manifest.mcurl"}
+
+{import * from COM.CURLAP.ADVANCED-UI.CONTROLS}
+{api-version-switch
+ case "7.0+" do
+    || do nothing
+ case "6.0+" do
+    {import * from COM.CURL.GUI.STYLED-CONTROLS}
+    {install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
+}
+
+{View
+
+    {spaced-vbox
+        |#
+        {text Normal TextField},
+        {TextField},
+        {TextField prompt = "��͂��ĂˁB"},
+        #|
+        {text GuidePrompt TextField},
+||        {CoreTextField},
+        {CoreTextField 
+            height = 1cm, font-size = 16pt,
+            prompt = "��͂��ĂˁB"},
+||        {CoreTextField prompt-background = "pink"},
+||        {CoreTextField control-content-background = "pink"},
+        {CoreTextField
+            height = 1cm, font-size = 16pt,
+            prompt = "��͂��ĂˁB",
+            prompt-color = "red",
+            prompt-background = "pink",
+            control-content-background = "yellow",
+            color = "green"
+        }|#,
+
+        {text Normal DateField},
+        {DateField},
+        {DateField prompt = "��͂��ĂˁB"},
+
+        {text GuidePrompt DateField},
+        {CoreDateField},
+        {CoreDateField prompt = "��͂��ĂˁB"},
+        {CoreDateField prompt-background = "pink"},
+        {CoreDateField control-content-background = "pink"},
+        {CoreDateField
+            prompt = "��͂��ĂˁB",
+            prompt-color = "red",
+            prompt-background = "pink",
+            control-content-background = "yellow",
+            color = "green"
+        },
+
+        {text Normal TextArea},
+        {TextArea},
+        {TextArea prompt = "��͂��ĂˁB"},
+
+        {text GuidePrompt TextArea},
+        {CoreTextArea},
+        {CoreTextArea prompt = "��͂��ĂˁB"},
+        {CoreTextArea prompt-background = "pink"},
+        {CoreTextArea control-content-background = "pink"},
+        {CoreTextArea
+            height = 2cm,
+            width = 2cm,
+            prompt-color = "white",
+            prompt-background = {url "images/curl-waves-32.gif"}
+        }
+        #|
+    },
+    visibility = "normal",
+    {on WindowClose do
+        {exit}
+    }
+}

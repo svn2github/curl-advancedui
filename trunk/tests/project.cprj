@@ -1,0 +1,51 @@
+|| **********************************************************
+|| *** THIS FILE IS AUTOMATICALLY UPDATED BY THE CURL IDE ***
+|| ***              DO NOT MODIFY IT BY HAND              ***
+|| **********************************************************
+{project
+    version = 2,
+    manifest-location = "manifest.mcurl",
+    api-version = "6.0",
+    compiler-directives = "careful? = true",
+    use-style-sheets? = false,
+    style-package-name = "COM.CURL.GUI.STYLED-CONTROLS",
+    style-sheet-name = "DEFAULT-STYLE-SHEET",
+    {target
+        name = "default",
+        target-url-name = "deploy-default",
+        {resource-transform "t-validation-textfield.curl\u0000file\u0000t-validation-textfield.curl", copy? = true},
+        {resource-transform "t-mouse-gesture.dcurl\u0000file\u0000t-mouse-gesture.dcurl", copy? = true},
+        {resource-transform "t-drilldown-combo.dcurl\u0000file\u0000t-drilldown-combo.dcurl", copy? = true},
+        {resource-transform "t-carousel.curl\u0000file\u0000t-carousel.curl", copy? = true},
+        {assembly-transform "COM.CURLAP.ADVANCED-UI", use-path? = true},
+        {resource-transform "t-drilldown-listbox.dcurl\u0000file\u0000t-drilldown-listbox.dcurl", copy? = true},
+        {resource-transform "start.dcurl\u0000file\u0000start.dcurl", copy? = true},
+        {resource-transform "t-wizard.dcurl\u0000file\u0000t-wizard.dcurl", copy? = true},
+        {resource-transform "t-animation-button.dcurl\u0000file\u0000t-animation-button.dcurl", copy? = true},
+        {resource-transform "t-reflect.curl\u0000file\u0000t-reflect.curl", copy? = true},
+        {resource-transform "t-disclosure.dcurl\u0000file\u0000t-disclosure.dcurl", copy? = true},
+        {resource-transform "t-core-datefield.curl\u0000file\u0000t-core-datefield.curl", copy? = true},
+        {resource-transform "t-core-command-button.curl\u0000file\u0000t-core-command-button.curl", copy? = true},
+        {resource-transform "t-border.curl\u0000file\u0000t-border.curl", copy? = true},
+        {resource-transform "t-event-manager.curl\u0000file\u0000t-event-manager.curl", copy? = true},
+        {resource-transform "t-auto-complete.curl\u0000file\u0000t-auto-complete.curl", copy? = true},
+        {resource-transform "t-slidescrollbox.curl\u0000file\u0000t-slidescrollbox.curl", copy? = true},
+        {resource-transform "t-rotator.dcurl\u0000file\u0000t-rotator.dcurl", copy? = true},
+        {resource-transform "t-animation.curl\u0000file\u0000t-animation.curl", copy? = true},
+        {resource-transform "t-zoom.dcurl\u0000file\u0000t-zoom.dcurl", copy? = true},
+        {resource-transform "t-domain-ui.curl\u0000file\u0000t-domain-ui.curl", copy? = true},
+        {resource-transform "t-fisheye.curl\u0000file\u0000t-fisheye.curl", copy? = true},
+        {resource-transform "t-choose-file.curl\u0000file\u0000t-choose-file.curl", copy? = true},
+        {resource-transform "t-oscillating-button.dcurl\u0000file\u0000t-oscillating-button.dcurl", copy? = true},
+        {resource-transform "t-oneclick-textfield.curl\u0000file\u0000t-oneclick-textfield.curl", copy? = true},
+        {resource-transform "t-cube-frame.dcurl\u0000file\u0000t-cube-frame.dcurl", copy? = true},
+        {resource-transform "t-ui-motion.curl\u0000file\u0000t-ui-motion.curl", copy? = true},
+        {resource-transform "t-calculator.curl\u0000file\u0000t-calculator.curl", copy? = true},
+        {resource-transform "t-guide-prompt.curl\u0000file\u0000t-guide-prompt.curl", copy? = true},
+        {assembly-transform "COM.CURL.GUI.STYLED", use-path? = true},
+        {resource-transform "t-tab-controls.dcurl\u0000file\u0000t-tab-controls.dcurl", copy? = true},
+        {resource-transform "t-vibration.dcurl\u0000file\u0000t-vibration.dcurl", copy? = true},
+        {resource-transform "t-thumbnail.curl\u0000file\u0000t-thumbnail.curl", copy? = true},
+        {resource-transform "t-waiting.curl\u0000file\u0000t-waiting.curl", copy? = true}
+    }
+}

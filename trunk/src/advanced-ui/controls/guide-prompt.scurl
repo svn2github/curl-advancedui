@@ -1,0 +1,74 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @date July 10, 2008
+||| @author Hitoshi Okada
+|||
+
+||
+|| GuidePromptHelper 
+||
+{define-class package GuidePromptHelper
+
+  field constant control:any
+
+  field package-get prompt-value:#String
+  field package-get input-color:FillPattern 
+  field package-get input-background:Background
+  field package-get prompt-color:FillPattern
+  field package-get prompt-background:Background
+
+  {constructor package {default
+                           guide-prompt-control:any,
+                           prompt-color:FillPattern,
+                           prompt-background:Background
+                       }
+
+    set self.control = guide-prompt-control
+    set self.prompt-color = prompt-color
+    set self.prompt-background = prompt-background
+
+    {with-compiler-directives
+        allow-any-calls? = true, allow-implicit-any-casts? = true 
+     do
+        set self.prompt-value = self.control.prompt
+        set self.input-color = self.control.color
+        set self.input-background = self.control.control-content-background
+        set self.control.color = self.prompt-color
+        set self.control.control-content-background = self.prompt-background
+    }
+  }
+
+  {method package {do-focus-in}:void
+
+    {with-compiler-directives allow-any-calls? = true do
+        set self.control.prompt = null
+        set self.control.color = self.input-color
+        set self.control.control-content-background = self.input-background
+    }
+  }
+
+  {method package {do-focus-out}:void
+
+    {with-compiler-directives allow-any-calls? = true do
+        set self.control.prompt = self.prompt-value
+        {if self.control.value == "" then
+            {self.control.unset-value}
+            set self.control.color = self.prompt-color
+            set self.control.control-content-background = self.prompt-background
+        }
+    }
+  }
+}

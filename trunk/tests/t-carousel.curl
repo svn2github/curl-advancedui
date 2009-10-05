@@ -1,0 +1,140 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Masaki Kodan, Hideki Omatsu
+|||
+
+{curl 6.0, 7.0 applet}
+{curl-file-attributes character-encoding = "utf8"}
+{applet manifest = "manifest.mcurl"}
+
+{import * from COM.CURLAP.ADVANCED-UI.CONTAINERS}
+{import * from COM.CURLAP.ADVANCED-UI.UTILS}
+
+{api-version-switch
+ case "7.0+" do
+    || do nothing
+ case "6.0+" do
+    {import * from COM.CURL.GUI.STYLED-CONTROLS}
+    {install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
+}
+
+{value
+    let sg:#Carousel-SceneGraphic
+    let carousel:Carousel = {Carousel
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_leopard3.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_polarbear2.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_gopher.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_duckling.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_zoolemur1.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_05redpanda.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_05fox.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_cowchew.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_kangaroo.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_leopard3.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_polarbear2.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_gopher.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_duckling.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_zoolemur1.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_05redpanda.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_05fox.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_cowchew.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_kangaroo.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_leopard3.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_polarbear2.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_gopher.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_duckling.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_zoolemur1.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_05redpanda.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_05fox.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_cowchew.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_kangaroo.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_leopard3.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_polarbear2.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_gopher.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_duckling.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_zoolemur1.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_05redpanda.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_05fox.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_cowchew.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_kangaroo.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_leopard3.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_polarbear2.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_gopher.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_duckling.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_zoolemur1.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_05redpanda.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_05fox.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_cowchew.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_kangaroo.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_leopard3.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_polarbear2.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_gopher.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_duckling.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_zoolemur1.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_05redpanda.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_05fox.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_cowchew.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_kangaroo.jpg"}}.pixmap, reflect-height = 70}.pixmap,
+                                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_zoollama.jpg"}}.pixmap, reflect-height = 70}.pixmap
+                            }
+    set sg = {Carousel-SceneGraphic
+                 width = 800px, height = 300px,
+                 background = "white",
+                 ||border-width = 1px,
+                 border-color = "black",
+                 carousel
+             }
+    set carousel.user-data = sg
+
+
+    {AntialiasedFrame
+        factor = AntialiasFactor.high,
+        {VBox spacing = 20px,
+            {VBox spacing = 20px,
+                {bold font-size = 20pt, Carrousel},
+                sg,
+                {HBox
+                    {Fill},
+                    {CommandButton label = "<<", width = 100px,
+                        {on Action do
+                            {carousel.rot-next-left}
+                        }
+                    },
+                    {Fill width = 50px},
+                    {CommandButton label = ">>", width = 100px,
+                        {on Action do
+                            {carousel.rot-next-right}
+                        }
+                    },
+                    {Fill}
+                }
+            },
+            {bold font-size = 20pt, Reflect images},
+            {spaced-hbox
+                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_leopard3.jpg"}}.pixmap, reflect-height = 70},
+                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_polarbear2.jpg"}}.pixmap, reflect-height = 70},
+                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_gopher.jpg"}}.pixmap, reflect-height = 70},
+                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_duckling.jpg"}}.pixmap, reflect-height = 70},
+                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_zoolemur1.jpg"}}.pixmap, reflect-height = 70},
+                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_05redpanda.jpg"}}.pixmap, reflect-height = 70},
+                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_05fox.jpg"}}.pixmap, reflect-height = 70},
+                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_cowchew.jpg"}}.pixmap, reflect-height = 70},
+                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_kangaroo.jpg"}}.pixmap, reflect-height = 70},
+                {ReflectImage width = 80pt, height = 120pt, {url ""}, from-pixmap = {SolidBorderFrame {url "./images/normal_zoollama.jpg"}}.pixmap, reflect-height = 70}
+            }
+        }
+    }
+}

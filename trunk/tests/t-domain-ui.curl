@@ -1,0 +1,143 @@
+﻿||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Naoto Miyazaki
+|||
+
+{curl 6.0, 7.0 applet}
+{applet manifest = "manifest.mcurl",
+    {compiler-directives careful? = true}
+}
+
+{import * from COM.CURLAP.ADVANCED-UI.CONTROLS}
+{api-version-switch
+ case "7.0+" do
+    || do nothing
+ case "6.0+" do
+    {import * from COM.CURL.GUI.STYLED-CONTROLS}
+    {install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
+}
+
+{let nengou-list:RecordSet =
+    {RecordSet
+        {RecordFields
+            {RecordField "name",domain = String},
+            {RecordField "initial",domain = String},
+            {RecordField "start",domain = {StandardDateDomain}},
+            {RecordField "end",domain = {StandardDateDomain},nullable? = true}
+        },
+        {RecordData
+            name = "明治",
+            initial = "M",
+            start = {utc-date-time "1868-01-25"},
+            end = {utc-date-time "1912-07-29"}
+        },
+        {RecordData
+            name = "大正",
+            initial = "T",
+            start = {utc-date-time "1912-07-30"},
+            end = {utc-date-time "1926-12-24"}
+        },
+        {RecordData
+            name = "昭和",
+            initial = "S",
+            start = {utc-date-time "1926-12-25"},
+            end = {DateTime "1989-01-07"}
+        },
+        {RecordData
+            name = "平成",
+            initial = "H",
+            start = {DateTime "1989-01-08"},
+            end = null
+        }
+    }
+}
+
+{define-class public NengouDateDomain {inherits StandardDateDomain}
+
+  let private constant nengou-list:RecordSet = nengou-list
+
+  {constructor public {default
+                          default-value:any = null,
+                          min-allowable:any = null,
+                          max-allowable:any = null,
+                          allowable-values:#{Array-of DateTime} = null
+                      }
+    {construct-super
+        default-value = default-value,
+        min-allowable = min-allowable,
+        max-allowable = max-allowable,
+        allowable-values = allowable-values
+    }
+  }
+
+  {method public {format
+                     value:any
+                 }:String
+    {if value == null
+     then
+        {return ""}
+    }
+
+    let date:DateTime = value asa DateTime
+
+    {if-non-null record:Record =
+        {NengouDateDomain.nengou-list.select-one
+            filter =
+                {RecordFilter
+                    {proc {r:Record}:bool
+                        let start-date:DateTime = r["start"] asa DateTime
+                        let end-date:#DateTime  = r["end"] asa #DateTime
+                        
+                        {return
+                            {start-date.compare date} <= 0
+                            and (end-date == null or {end-date.compare date} >= 0)
+                        }
+                    }
+                }
+        }
+     then
+
+        let year:int = date.info.year - (record["start"] asa DateTime).info.year + 1
+        
+        {return
+            {format
+                "%s%s年%02d月%02d日",
+                record["name"],
+                {if year == 1 then "元" else {String year}},
+                date.info.month,
+                date.info.day
+            }
+        }
+     else
+        {return date.info.iso-date}
+    }
+  }
+}
+
+{DomainTextField
+    domain = {NengouDateDomain},
+    value =  {DateTime "1980-10-14"}
+}
+
+{DomainTextDisplay
+    domain = {NengouDateDomain},
+    value =  {DateTime "1989-01-09"}
+}
+
+{DomainDateField
+    domain = {NengouDateDomain},
+    value =  {DateTime}
+}

@@ -1,0 +1,110 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Yohei Yoshida, Hitoshi Okada
+|||
+
+||
+|| Equation
+||
+{define-enum public Equation
+    linear,    || a linear equation
+    quadratic, || a quadratic equation
+    test       || FIXME: change name. (returns -1 or 1)
+}
+
+||
+|| AnimationTimerEvent
+||
+{define-class public open AnimationTimerEvent
+  {inherits Event}
+
+  field value:double
+  
+  {getter public open {value-as-int}:int
+    {return self.value asa int}
+  }
+
+  {getter public open {value-as-float}:float
+    {return self.value asa float}
+  }
+
+  {getter public open {value-as-double}:double
+    {return self.value asa double}
+  }
+
+  {constructor public {default value:double}
+    set self.value = value
+  }
+}
+
+||
+|| AnimationTimer
+||
+{define-class public open AnimationTimer
+  {inherits Timer}
+
+  field private y:double 
+  field private init-y:double
+
+  {constructor public {default 
+                          || spcific arguments
+                          equation:Equation = Equation.linear,
+                          x:double = 0.0,
+                          init-y:double = 0.0,
+                          
+                          || Timer's arguments
+                          enabled?:bool = true,
+                          repeat:int = -1,
+                          interval:Time = -1s,
+                          frequency:Frequency = -1fps,
+                          when:#DateTime = null,
+                          delay:Time = -1s,
+                          on-timer-event:EventHandler
+                      }
+
+    set self.y = init-y 
+
+    {construct-super 
+        enabled? = enabled?,
+        repeat = repeat,
+        interval = interval,
+        frequency = frequency,
+        when = when,
+        delay = delay,
+        {on e:TimerEvent do
+            {after 0s do
+                {self.handle-event {AnimationTimerEvent self.y}}
+                || TODO: logic by Y.Yoshida
+                {switch equation
+                 case Equation.linear do
+                    set self.y = self.y + x
+                 case Equation.quadratic do
+                    || TODO:
+                 case Equation.test do
+                    set self.y = self.y * -1
+                }
+            }
+        }
+    }
+    {self.add-event-handler on-timer-event}
+  }
+
+  || reset value
+  {method public open {reset-value}:void
+    set self.y = self.init-y
+  }
+}
+

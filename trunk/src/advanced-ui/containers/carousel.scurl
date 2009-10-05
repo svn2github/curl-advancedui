@@ -1,0 +1,367 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Masaki Kodan, Hideki Omatsu
+|||
+
+{import * from CURL.GRAPHICS.SCENE}
+
+||
+|| carousel
+||
+{define-class public Carousel {inherits Scene}
+
+  let private _longer-axis:int = 160
+  let private _minor-axis:int  =  60
+
+  field private _timer:Timer
+  field public user-data:any
+  field private _rotate-step:int = 0
+  field private _stop?:bool = false
+  field private _reverse?:bool = false
+  field private _si-ta:Angle
+  field private _delta:Angle
+  field private _rotate-max-step:int = 200
+  
+  {constructor public {default
+                          ambient-light-color:Color = {Color.from-rgb .2, .2, .2},
+                          sc-graphic:#SceneGraphic = null,
+                          ... 
+                      }
+    let arg:Arguments = {Arguments ...}
+    set self._si-ta = (360 / arg.size) * 1deg
+    
+
+    let camera:Camera = self.camera
+    set camera.projection = Projection.orthographic
+    set camera.near-clipping-plane = 1mm
+    set camera.far-clipping-plane  = 100m
+    
+    set self._delta = 90deg
+    {for sc:any key index:int in ... do
+        {type-switch sc
+         case pixmap:Pixmap do
+            let x:Distance = Carousel._longer-axis * {cos self._delta + (self._si-ta * index)} * 1mm
+            let z:Distance = Carousel._minor-axis  * {sin self._delta + (self._si-ta * index)} * 1mm
+            let y:Distance = -z / 4
+            let q:Quad = {Quad
+                             fill-pattern = {FillPattern.from-pixmap pixmap},
+                             x - 40mm, y - 60mm, z = z,
+                             80mm, 120mm}
+            {self.add-object q}
+         case s-url:Url do
+            {dump s-url} 
+         else
+            {error "unexpected return value"}
+        }
+    }
+
+    set self._timer = {Timer
+                          interval = .01s,
+                          repeat = 0,
+                          delay = 0s,
+                          {on TimerEvent do
+                              {self.disp}
+                              set self._delta = self._delta + (1deg * self._rotate-step) / 100
+                              {if not self._stop? then
+                                  {if self._reverse? then
+                                      {if self._rotate-step > -self._rotate-max-step then
+                                          {dec self._rotate-step}
+                                      }
+                                      {if self._rotate-step < -self._rotate-max-step then
+                                          {inc self._rotate-step}
+                                      }
+                                   else
+                                      {if self._rotate-step < self._rotate-max-step then
+                                          {inc self._rotate-step}
+                                      }
+                                      {if self._rotate-step > self._rotate-max-step then
+                                          {dec self._rotate-step}
+                                      }
+                                  }
+                               else
+                                  {if  self._rotate-step < 0 then
+                                      {inc self._rotate-step}
+                                   elseif self._rotate-step > 0 then
+                                      {dec self._rotate-step}
+                                   else
+                                      set self._timer.repeat = 0
+                                  }
+                              }
+                          }
+                      }
+
+  }
+  
+  {setter public {animate? ani?:bool}:void
+    set self._timer.repeat = {if ani? then
+                                 set self._stop? = false
+                                 -1
+                              else
+                                 set self._stop? = true
+                                 -1
+                             }
+  }
+
+  {getter public {animate?}:bool
+    {return self._timer.repeat == -1}
+  }
+
+  {getter public {timer}:Timer
+    {return self._timer}
+  }
+
+  {setter public {stop? stop?:bool}:void
+    set self._stop? = stop?
+  }
+
+  {getter public {stop?}:bool
+    {return self._stop?}
+  }
+
+  {setter public {rotate-max-step rotate-max-step:int}:void
+    set self._rotate-max-step = rotate-max-step
+  }
+
+  {getter public {rotate-max-step}:int
+    {return self._rotate-max-step}
+  }
+
+  {method private {disp}:void
+    {for q:SceneObject key index:int in self.objects do
+        {if {type-of q} != Quad then {continue}}
+
+        let x:Distance = Carousel._longer-axis * {cos self._delta + (index * self._si-ta)} * 1mm
+        let z:Distance = Carousel._minor-axis  * {sin self._delta + (index * self._si-ta)} * 1mm
+        let y:Distance = -z / 4
+        set (q asa Quad).x = x - 40mm
+        set (q asa Quad).y = y - 60mm
+        set (q asa Quad).z = z
+        {with-compiler-directives allow-any-calls? = true do
+            {self.user-data.update-drawable}
+        }
+    }
+  }
+  
+  {method public {rot-left}:void
+    set self._reverse? = false
+  }
+  
+  {method public {rot-right}:void
+    set self._reverse? = true
+  }
+  
+  {method public {rot-next-left}:void
+    set self._timer.repeat = 0
+    let step-angle:Angle = -((self._delta - 90deg) mod self._si-ta)
+    {if {abs step-angle} < 0.1deg then
+        set step-angle = -self._si-ta
+    }
+    let timer:Timer = {Timer
+                          interval = .01s,
+                          repeat = 30,
+                          delay = 0s,
+                          {on TimerEvent do
+                              set self._delta = self._delta + step-angle / 30
+                              {self.disp}
+                          }
+                      }
+  }
+  
+  {method public {rot-next-right}:void
+    set self._timer.repeat = 0
+    let step-angle:Angle = (self._si-ta - ((self._delta - 90deg) mod self._si-ta))
+    {if {abs step-angle} < 0.1deg then
+        set step-angle = self._si-ta
+    }
+    let timer:Timer = {Timer
+                          interval = .01s,
+                          repeat = 30,
+                          delay = 0s,
+                          {on TimerEvent do
+                              set self._delta = self._delta + step-angle / 30
+                              {self.disp}
+                          }
+                      }
+  }
+  
+}
+
+
+||
+|| carousel-scenegraphic
+||
+{define-class public Carousel-SceneGraphic {inherits SceneGraphic}
+  
+  field private constant move-1px:Distance = {any-to-Distance 1px}
+  
+  {constructor public {default ...}
+    
+    {construct-super {splice ...}}
+    
+    let (min-coord:Distance3d, max-coord:Distance3d) = {self.get-world-bounding-box}
+    
+    set self.scene.camera.field-of-view = 178.547deg || (90deg - {atan {abs max-coord.y} / ((max-coord.x - min-coord.x) / 2.0 * 1.2)}) * 2.0
+    
+    let len:Distance = {max {abs max-coord.x - min-coord.x} / 2.0, {abs max-coord.y - min-coord.y} / 2.0, {abs max-coord.z - min-coord.z} / 2.0}
+    let view-zz:Distance = (len / {sin self.scene.camera.field-of-view / 2.0}) * 20
+    let view-pos:Distance3d = {Distance3d
+                                  min-coord.x + (max-coord.x - min-coord.x) / 2,
+                                  min-coord.y + (max-coord.y - min-coord.y) / 2,
+                                  view-zz}
+
+    {self.set-view view-pos, -180deg, 0deg}
+    
+    {self.add-event-handler {on e:PointerMotion do
+                                {if self.scene isa Carousel then
+                                    let carousel:Carousel = self.scene asa Carousel
+                                    {with-compiler-directives allow-any-calls? = true do
+                                        let half-distance:Distance = {any-to-Distance self.width / 2}
+                                        {if e.x < half-distance then
+                                            set carousel.rotate-max-step = {floor (half-distance - e.x) * (200 / half-distance)} asa int
+                                            {carousel.rot-left}
+                                         else
+                                            set carousel.rotate-max-step = {floor (e.x - half-distance) * (200 / half-distance)} asa int
+                                            {carousel.rot-right}
+                                        }
+                                    }
+                                }
+                            }}
+    {self.add-event-handler {on e:PointerEnter do
+                                {if self.scene isa Carousel then
+                                    let carousel:Carousel = self.scene asa Carousel
+                                    set carousel.stop? = false
+                                    set carousel.timer.repeat = -1
+                                }
+                            }}
+    {self.add-event-handler {on e:PointerLeave do
+                                {if self.scene isa Carousel then
+                                    let carousel:Carousel = self.scene asa Carousel
+                                    set carousel.stop? = true
+                                    set carousel.timer.repeat = -1
+                                }
+                            }}
+  }
+  
+  
+  || handle mouse motion
+  {method public {handle-motion
+                     button-pressed:int,
+                     delta-x:Distance,
+                     delta-y:Distance}:void
+    {if button-pressed == 3 then
+        {super.handle-motion button-pressed, delta-x, delta-y}
+    }
+  }
+  
+
+  || get world bounding box
+  {method public {get-world-bounding-box}:(Distance3d, Distance3d)
+    
+    let min-x:Distance = 9999m
+    let min-y:Distance = 9999m
+    let min-z:Distance = 9999m
+    let max-x:Distance = -9999m
+    let max-y:Distance = -9999m
+    let max-z:Distance = -9999m
+    let s:Scene = super.scene
+    
+    {for obj:SceneObject in s.objects do
+        {let (min-xyz:Distance3d, max-xyz:Distance3d, valid-bounds?:bool) =
+            {obj.get-world-bounding-box}}
+
+        {if min-x > min-xyz.x then      set min-x = min-xyz.x}
+        {if min-y > min-xyz.y then      set min-y = min-xyz.y}
+        {if min-z > min-xyz.z then      set min-z = min-xyz.z}
+        {if min-x > max-xyz.x then      set min-x = max-xyz.x}
+        {if min-y > max-xyz.y then      set min-y = max-xyz.y}
+        {if min-z > max-xyz.z then      set min-z = max-xyz.z}
+
+        {if max-x < min-xyz.x then      set max-x = min-xyz.x}
+        {if max-y < min-xyz.y then      set max-y = min-xyz.y}
+        {if max-z < min-xyz.z then      set max-z = min-xyz.z}
+        {if max-x < max-xyz.x then      set max-x = max-xyz.x}
+        {if max-y < max-xyz.y then      set max-y = max-xyz.y}
+        {if max-z < max-xyz.z then      set max-z = max-xyz.z}
+    }
+    
+    {return ({Distance3d min-x, min-y, min-z},
+             {Distance3d max-x, max-y, max-z})}
+  }
+  
+  
+  || set view
+  {method public {set-view
+                     view-position:Distance3d,
+                     azimuth:Angle,
+                     elevation:Angle}:void
+    
+    let rot-mat-lr:Matrix3d = {Matrix3d.create-rotation {Direction3d 0.0, 1.0, 0.0}, azimuth}
+    
+    let (xx:double, yy:double, zz:double, ww:double) = {rot-mat-lr.multiply 0.0, 0.0, 1.0, 1.0}
+    let vv:Direction3d = {Direction3d xx, yy, zz}
+    let rot-mat-ud:Matrix3d = {Matrix3d.create-rotation {self.calc-outer-product vv, {Direction3d 0.0, 1.0, 0.0}}, elevation}
+    
+    set (xx, yy, zz, ww) = {rot-mat-lr.multiply 0.0, 0.0, 1.0, 1.0}
+    set (xx, yy, zz, ww) = {rot-mat-ud.multiply xx, yy, zz, 1.0}
+    let view-vec:Direction3d = {self.calc-unit-product {Direction3d xx, yy, zz}}
+
+    set (xx, yy, zz, ww) = {rot-mat-lr.multiply 0.0, 1.0, 0.0, 1.0}
+    set (xx, yy, zz, ww) = {rot-mat-ud.multiply xx, yy, zz, 1.0}
+    let up-vec:Direction3d = {self.calc-unit-product {Direction3d xx, yy, zz}}
+    
+||--    {output "POS: " & view-position}
+||--    {output "VEC: " & view-vec}
+||--    {output "UP : " & up-vec}
+    {self.scene.camera.set-orientation-and-position
+        view-vec,
+        up-vec,
+        position = view-position}
+  }
+  
+
+  || calc unit product
+  {method private {calc-unit-product
+                      vec:Double3d
+                  }:Double3d
+    
+    let ww:double = vec.x * vec.x + vec.y * vec.y + vec.z * vec.z
+    {if {abs ww} < 0.00001 then
+        {return {Double3d.zero}}
+    }
+    let ll:double = {sqrt ww}
+    let xx:double = vec.x / ll
+    let yy:double = vec.y / ll
+    let zz:double = vec.z / ll
+    
+    {return {Double3d xx, yy, zz}}
+  }
+  
+  
+  || calc outer vector
+  {method private {calc-outer-product
+                      vec-a:Double3d,
+                      vec-b:Double3d
+                  }:Double3d
+
+    let xx:double = vec-a.y * vec-b.z - vec-a.z * vec-b.y
+    let yy:double = vec-a.z * vec-b.x - vec-a.x * vec-b.z
+    let zz:double = vec-a.x * vec-b.y - vec-a.y * vec-b.x
+    
+    {return {self.calc-unit-product {Double3d xx, yy, zz}}}
+  }
+  
+  
+}
