@@ -154,3 +154,6 @@
     location = "t-image-popup-view.dcurl"
 }
 
+{component file t-record-grid-enhance.curl,
+    location = "t-record-grid-enhance.curl"
+}
