@@ -1,0 +1,395 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Masahiro Hagiwara
+|||
+
+{curl 7.0 applet}
+{curl-file-attributes character-encoding = "shift-jis"}
+{applet manifest = "manifest.mcurl",
+    {compiler-directives careful? = true}
+}
+
+{import * from COM.CURLAP.ADVANCED-UI.CONTROLS}
+
+{let people:RecordSet =
+    {RecordSet
+        {RecordFields
+            {RecordField "First", domain = String},
+            {RecordField "Last", domain = String},
+            {RecordField "Age", domain = int},
+            {RecordField "Test1", domain = int},
+            {RecordField "Test2", domain = int},
+            {RecordField "Test3", domain = int},
+            {RecordField "Test4", domain = int},
+            {RecordField "TestX", domain = int},
+            {RecordField "TestY", domain = int},
+            {RecordField "TestY2", domain = int}
+        },
+        {RecordData First = "John", Last = "Smith", Age = 25},
+        {RecordData First = "John", Last = "Smith", Age = 26},
+        {RecordData First = "John", Last = "Smith", Age = 27},
+        {RecordData First = "John", Last = "Smith", Age = 28},
+        {RecordData First = "John", Last = "Smith", Age = 29},
+        {RecordData First = "John", Last = "Smith", Age = 30},
+        {RecordData First = "John", Last = "Smith", Age = 31},
+        {RecordData First = "Jane", Last = "Smith", Age = 32},
+        {RecordData First = "Jane", Last = "Jones", Age = 33}
+    }
+}
+
+{
+    let new-cols1:{Array-of BaseRecordGridColumn}
+    = {new {Array-of BaseRecordGridColumn},
+          {RecordGridColumn "Col1"}}
+}
+{
+    let new-cols2:{Array-of BaseRecordGridColumn}
+    = {new {Array-of BaseRecordGridColumn},
+          {RecordGridColumn "Col2"}}
+}
+{
+    let new-cols3:{Array-of BaseRecordGridColumn}
+    = {new {Array-of BaseRecordGridColumn},
+          {RecordGridColumn "Col3"}}
+}
+
+{
+    let new-cols4:{Array-of BaseRecordGridColumn}
+    = {new {Array-of BaseRecordGridColumn},
+          {RecordGridColumn "Col4"}}
+}
+
+{define-class public open CustomCell
+  {inherits StandardStringCell}
+  
+  {constructor public {default}
+    {construct-super}
+  }
+  {local-option public error?:bool = false
+    {self.become-active-from-traversal}
+    let change?:bool = true
+    {for i:double = 0 to 1.25 step 0.25 do
+        {if change? then
+            {after i * 2.0s do
+                set self.background = "red"
+            }
+            set change? = false
+         else
+            {after i * 2.0s do
+                {unset self.background}
+            }
+            set change? = true
+        }
+    }
+    {unset self.error?}
+  }
+  {method public {refresh-data}:void
+    {super.refresh-data}
+  }
+  {method public open {note-grid-focus-in}:void
+    {output "Cell Focus In"}
+    {super.note-grid-focus-in}
+  }
+  {method public open {note-grid-focus-out}:void
+    {output "Cell Focus Out"}
+    {super.note-grid-focus-out}
+  }
+}
+
+{def rg =
+    {RecordGridEnhance
+        record-source = people,
+        height = 6cm,width=32cm,
+        alternate-row-background = "#cceecc",
+        {RecordGridColumnGroup
+            "Name",
+            {RecordGridColumn
+                "First",
+                cell-spec = CustomCell
+            },
+            {RecordGridColumn
+                "Last",
+                cell-spec = CustomCell
+            }
+        },
+        {RecordGridColumn
+            "Age",
+            cell-spec = CustomCell
+        },
+        {RecordGridColumnGroup
+            "TestGroup",
+            {RecordGridColumn
+                "Test1",
+                cell-spec = CustomCell
+            },
+            {RecordGridColumnGroup
+                "SubGroup",
+                {RecordGridColumn
+                    "Test2",
+                    cell-spec = CustomCell
+                },
+                {RecordGridColumn
+                    "Test3",
+                    cell-spec = CustomCell
+                },
+                {RecordGridColumnGroup
+                    "SubGroup2",
+                    {RecordGridColumn
+                        "TestX",
+                        cell-spec = CustomCell
+                    },
+                    {RecordGridColumnGroup
+                        "SubGroup3",
+                        {RecordGridColumn
+                            "TestY",
+                            cell-spec = CustomCell
+                        },
+                        {RecordGridColumn
+                            "TestY2",
+                            cell-spec = CustomCell
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+{def original-bs-columns = {rg.base-columns.clone}}
+{def bs-deleted-tbl = {{HashTable-of BaseRecordGridColumn,BaseRecordGridColumn}}}
+{value
+    {VBox
+        spacing=5pt,
+        "RecordGridEnhance Test Applet",
+        rg,
+        {CommandButton
+            width = {make-elastic}, label="The Age row is checked",
+            {on Action do
+                def grid-ui = rg.ui-object asa RecordGridUI
+                def index:int = {rg.records.find {RecordData Age=26}}
+                
+                def col-index:int = {rg.get-column-index field-name="Age"}
+                
+                {if index != -1 and col-index != -1 then
+                    def this-cell = {grid-ui.get-cell-at-index
+                                        index, col-index
+                                    } asa CustomCell
+                    set this-cell.error? = true
+                }
+            }
+        },
+        {HBox
+            {CommandButton
+                width = {make-elastic}, label = "The Last row is hidden",
+                {on Action do
+                    {rg.hide-column field-name = "Last"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "The Last row is showed",
+                {on Action do
+                    {rg.show-column field-name = "Last"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "The Last row is deleted",
+                {on Action do
+                    {rg.delete-column field-name="Last"}
+                }
+            }
+        },
+        {HBox
+            {CommandButton
+                width = {make-elastic}, label = "Row (Test3) of two hierarchies is non-displayed",
+                {on Action do
+                    {rg.hide-column field-name = "Test3"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Row (Test3) of two hierarchies is showed",
+                {on Action do
+                    {rg.show-column field-name = "Test3"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "The row of two hierarchies (SubGroup under Test6) is added",
+                {on Action do
+                    {rg.add-column new-col = {RecordGridColumn "Test6", editable? = true},
+                        colg-name = "SubGroup", new-col-index = 2}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "The row of two hierarchies (Test6 under SubGroup) is deleted",
+                {on Action do
+                    {rg.delete-column field-name = "Test6"}
+                }
+            }
+        },
+        {HBox
+            {CommandButton
+                width = {make-elastic}, label = "Row (Test5) is added",
+                {on Action do
+                    {rg.add-column new-col = {RecordGridColumn "Test5", editable? = true}}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Row (Test5) is deleted",
+                {on Action do
+                    {rg.delete-column field-name =  "Test5"}
+                }
+            }
+        },
+        {HBox
+            {CommandButton
+                width = {make-elastic}, label = "Row (TestY) of four hierarchies is hidden",
+                {on Action do
+                    {rg.hide-column field-name = "TestY"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "The row of four hierarchies (SubGroup3 under TestZ) is added",
+                {on Action do
+                    {rg.show-column field-name = "TestY"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "The row of four hierarchies (SubGroup3 under TestZ) is added",
+                {on Action do
+                    {rg.add-column new-col = {RecordGridColumn "TestZ", editable? = true},
+                        colg-name = "SubGroup3", new-col-index = 1}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "The row of four hierarchies (TestY under SubGroup3) is deleted",
+                {on Action do
+                    {rg.delete-column field-name = "TestY"}
+                }
+            }
+        },
+        {HBox
+            {CommandButton
+                width = {make-elastic}, label = "Row group (Group1) of one hierarchy is added",
+                {on Action do
+                    {rg.add-column-group
+                        new-colg = {RecordGridColumnGroup "Group1"},
+                        new-colg-index = 1,
+                        new-columns = new-cols1}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Row group (Name) of one hierarchy is deleted",
+                {on Action do
+                    {rg.delete-column-group colg-name = "Name"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Row group (Name) of one hierarchy is hidden",
+                {on Action do
+                    {rg.hide-column-group colg-name = "Name"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Row group (Name) of one hierarchy is showed",
+                {on Action do
+                    {rg.show-column-group colg-name = "Name"}
+                }
+            }
+        },
+        {HBox
+            {CommandButton
+                width = {make-elastic}, label = "The row group of two hierarchies (Name under Group2) is added",
+                {on Action do
+                    {rg.add-column-group
+                        new-colg = {RecordGridColumnGroup "Group2"},
+                        parent-colg-name = "Name",
+                        new-colg-index = 1,
+                        new-columns = new-cols2}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "The row group of two hierarchies (Group2 under Name) is deleted",
+                {on Action do
+                    {rg.delete-column-group colg-name = "Name"}
+                }
+            }
+        },
+        {HBox
+            {CommandButton
+                width = {make-elastic}, label = "The row group of three hierarchies (SubGroup2 under Group3) is added",
+                {on Action do
+                    {rg.add-column-group
+                        new-colg = {RecordGridColumnGroup "Group3"},
+                        parent-colg-name = "SubGroup2",
+                        new-colg-index = 1,
+                        new-columns = new-cols3}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "The row group of three hierarchies (Group3 under SubGroup2) is deleted",
+                {on Action do
+                    {rg.delete-column-group colg-name = "Group3"}
+                }
+            }
+        },
+        {HBox
+            {CommandButton
+                width = {make-elastic}, label = "Row group (SubGroup3) of four hierarchies is hidden",
+                {on Action do
+                    {rg.hide-column-group colg-name = "SubGroup3"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Row group (SubGroup3) of four hierarchies is showed",
+                {on Action do
+                    {rg.show-column-group colg-name = "SubGroup3"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "The row group of four hierarchies (SubGroup3 under Group4) is added",
+                {on Action do
+                    {rg.add-column-group
+                        new-colg = {RecordGridColumnGroup "Group4"},
+                        parent-colg-name = "SubGroup3",
+                        new-colg-index = 1,
+                        new-columns = new-cols4}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Row group (SubGroup3) of four hierarchies is deleted",
+                {on Action do
+                    {rg.delete-column-group colg-name = "SubGroup3"}
+                }
+            }
+        },
+        {HBox
+            {CommandButton
+                width = {make-elastic}, label = "Age row is hidden",
+                {on Action do
+                    {rg.hide-column field-name = "Age"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Age row is showed",
+                {on Action do
+                    {rg.show-column field-name = "Age"}
+                }
+            }
+        }
+    }
+}
+
+
+
