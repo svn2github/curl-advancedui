@@ -16,13 +16,6 @@
 ||| @authors Masahiro Hagiwara
 |||
 
-{curl 7.0 package}
-{curl-file-attributes character-encoding = "utf8"}
-
-{package COM.CURLAP.LIB.GUI.UTILS}
-
-{import * from CURL.GUI.STANDARD}
-
 {doc-next
     {purpose RecordGrid enhancing class}
     {details
@@ -55,7 +48,8 @@
   }
   
   {constructor public {default ...}
-    {construct-super ...}
+    {construct-super {splice ...}
+    }
     {set self.original-bs-columns = {self.base-columns.clone}}
     {set self.original-columns = {self.columns.clone}}
   }
@@ -217,7 +211,7 @@
         {throw {KeyNotFoundException "The specified column doesn't exist.: index=" & index}}
     }
     
-    let bs-columns = {self.base-columns.clone}
+    def bs-columns = {self.base-columns.clone}
     let multi-colg-flag?:bool = false
     
     {if column.column-depth > 0 then
@@ -252,9 +246,9 @@
                 let (col:#RecordGridColumnGroup) = 
                     {self.delete-column-group-internal colg = bs-col,
                         field-name = column.field-name, rf = column.field}
-                set bs-col-index = {bs-columns.find col}
+                set bs-col-index = {bs-columns.find col asa RecordGridColumnGroup}
                 {bs-columns.remove bs-col-index}
-                {bs-columns.insert col, bs-col-index}
+                {bs-columns.insert col asa RecordGridColumnGroup, bs-col-index}
             }
          else
             {throw {Exception "The column of non-display is not specified."}}
@@ -574,7 +568,7 @@
         
         set (bs-colg-index, bs-colg) =
             {self.get-bs-column-index 
-                colg-name = new-colg.caption,
+                colg-name = new-colg.caption asa String,
                 original? = false
             }
         
@@ -600,11 +594,11 @@
          else
             {if new-colg isa RecordGridColumnGroup then
                 {if new-colg-index == -1 then
-                    {current-bs-cols.append {non-null new-colg}}
+                    {current-bs-cols.append new-colg}
                     {set self.base-columns = current-bs-cols}
                     {return}
                  else
-                    {current-bs-cols.insert {non-null new-colg}, new-colg-index}
+                    {current-bs-cols.insert new-colg, new-colg-index}
                     {set self.base-columns = current-bs-cols}
                     {return}
                 }
@@ -989,7 +983,7 @@
                       bs-col:#BaseRecordGridColumn = null
                   }:void
     
-    let bs-columns = {self.base-columns.clone}
+    def bs-columns = {self.base-columns.clone}
     let multi-colg-flag?:bool = false
     
     {if bs-col.column-depth > 0 then
@@ -1018,9 +1012,9 @@
           colg = (bs-col asa RecordGridColumnGroup).parent-group,
           colg-name = colg-name}
     
-    set bs-col-index = {bs-columns.find update-colg}
+    set bs-col-index = {bs-columns.find update-colg asa RecordGridColumnGroup}
     {bs-columns.remove bs-col-index}
-    {bs-columns.insert update-colg, bs-col-index}
+    {bs-columns.insert update-colg asa RecordGridColumnGroup, bs-col-index}
     {set self.base-columns = bs-columns}
     
   }
