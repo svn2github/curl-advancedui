@@ -1,0 +1,1140 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Masahiro Hagiwara
+|||
+
+{curl 7.0 package}
+{curl-file-attributes character-encoding = "utf8"}
+
+{package COM.CURLAP.LIB.GUI.UTILS}
+
+{import * from CURL.GUI.STANDARD}
+
+{doc-next
+    {purpose RecordGrid enhancing class}
+    {details
+        The following functions are mounted.
+        {itemize - get-column-index:The index and the object of the column are acquired.}
+        {itemize - get-bs-column-index:The index and the object of the column or the column group are acquired.}
+        {itemize - hide-column:The column is hidden. }
+        {itemize - show-column:The hidden column is displayed.}
+        {itemize - add-column:The column is added. }
+        {itemize - delete-column:The column is deleted. }
+        {itemize - hide-column-group:The column group is hidden.}
+        {itemize - show-column-group:The hidden column group is display.}
+        {itemize - add-column-group:The column group is added.}
+        {itemize - delete-column-group:The column group is deleted.}
+    }
+}
+{define-class public RecordGridEnhance
+  {inherits RecordGrid}
+  
+  {field private original-columns:{Array-of RecordGridColumn}}
+  {field private original-bs-columns:{Array-of BaseRecordGridColumn}}
+  {field private deleted-columns-tbl:{HashTable-of RecordGridColumn, BaseRecordGridColumn} 
+    = {{HashTable-of RecordGridColumn, BaseRecordGridColumn}}
+  }
+  {field private deleted-columns-idx-tbl:{HashTable-of RecordGridColumn, int} 
+    = {{HashTable-of RecordGridColumn, int}}
+  }
+  {field private deleted-column-group-tbl:{HashTable-of BaseRecordGridColumn, int} 
+    = {{HashTable-of BaseRecordGridColumn, int}}
+  }
+  
+  {constructor public {default ...}
+    {construct-super ...}
+    {set self.original-bs-columns = {self.base-columns.clone}}
+    {set self.original-columns = {self.columns.clone}}
+  }
+  
+  {doc-next
+    {purpose The index and the object of the column are acquired.}
+    {parameter field-name,Field name}
+    {parameter rf, RecordField}
+    {parameter original?,Retrieval place judgment flag}
+    {return-vals index,rgc:RecordGridColumn}
+  }
+  {method public {get-column-index
+                     field-name:#String = null,
+                     rf:#RecordField = null,
+                     original?:bool = false
+                 }:(index:int, rgc:#RecordGridColumn)
+    
+    {assert (field-name != null or rf != null)}
+    
+    def columns =
+        {if original? then
+            self.original-columns
+         else
+            self.columns
+        }
+    
+    {for col:RecordGridColumn key k:int in columns do
+        {if-non-null field-name then
+            {if col.field-name == field-name then
+                {return (k, col)}
+            }
+         else
+            {if-non-null cf=col.field, rf then
+                {if {is-same-field cf, rf}then
+                    {return (k, col)}
+                }
+            }
+        }
+    }
+    
+    {return (-1, null)}
+    
+  }
+  
+  {doc-next
+    {purpose The index and the object of the column or the column group are acquired.} 
+    {parameter field-name,Field name}
+    {parameter colg-name,Column group name}
+    {parameter rf,RecordField}
+    {parameter original?,Retrieval place judgment flag}
+    {return-vals index, rgc:BaseRecordGridColumn}
+  }
+  {method public {get-bs-column-index
+                     field-name:#String = null,
+                     colg-name:#String = null,
+                     rf:#RecordField = null,
+                     original?:bool = false
+                 }:(index:int, rgc:#BaseRecordGridColumn)
+    
+    {assert (field-name != null or rf != null or colg-name != null)}
+    let found-index:int
+    let found-col:#BaseRecordGridColumn = null
+    let found?:bool = false
+    
+    def bs-columns =
+        {if original? then
+            self.original-bs-columns
+         else
+            self.base-columns
+        }
+    
+    {for col:BaseRecordGridColumn key k:int in bs-columns do
+        {type-switch col
+         case col:RecordGridColumn do
+            {if-non-null field-name then
+                {if col.field-name == field-name then
+                    {return (k, col)}
+                }
+             else
+                {if-non-null cf=col.field, rf then
+                    {if {is-same-field cf, rf}then
+                        {return (k, col)}
+                    }
+                }
+            }
+         case colg:RecordGridColumnGroup do
+            {if-non-null colg-name then
+                {if colg-name == colg.caption then
+                    {return k, colg}
+                }
+            }
+            set (found-index, found-col, found?)
+            = {self.get-bs-column-index-internal colg = colg,
+                  field-name = field-name, colg-name = colg-name}
+            {if found? then
+                {return (found-index, found-col)}
+            }
+        }
+    }
+    
+    {if field-name == null or field-name.size == 0 then
+        {if-non-null rf then
+            set field-name = rf.name
+        }
+    }
+    
+    {for rgcg key rgc in self.deleted-columns-tbl do
+        {if (rgc asa RecordGridColumn).field-name == field-name then
+            {for bs-col key k in bs-columns do
+                {type-switch rgcg
+                 case rgc:RecordGridColumn do
+                 case rgcg:RecordGridColumnGroup do
+                    {if rgcg == bs-col then
+                        {return (k, bs-col)}
+                     else
+                        let (index:int, colg:#RecordGridColumnGroup, found?:bool)
+                        = {self.get-column-group parent-colg = bs-col, colg = rgcg}
+                        {if found? then
+                            {return index, colg}
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    {return (-1, null)}
+    
+  }
+  
+  {doc-next 
+    {purpose Internal of the hide-column method is processed.}
+    {parameter index,Index of Column}
+    {parameter column,Column object}
+    {parameter bs-col-index, Index of column group}
+    {parameter bs-col, Column group object}
+  }
+  {method private {hide-column-internal 
+                      index:int = -1, 
+                      column:#RecordGridColumn = null,
+                      bs-col-index:int = -1,
+                      bs-col:#BaseRecordGridColumn = null
+                  }:void
+    def columns = self.columns
+    
+    {if not (index >= 0 and index < self.columns.size) then
+        {if-non-null column then
+            set index = {columns.find column}
+        }
+     elseif column == null then
+        {try 
+            set column = columns[index]
+         catch e:Exception do
+            {throw {Exception "The specified column doesn't exist.： index=" & index}}
+        }
+    }
+    
+    {if not (index >= 0 and index < columns.size) then
+        {throw {KeyNotFoundException "The specified column doesn't exist.: index=" & index}}
+    }
+    
+    let bs-columns = {self.base-columns.clone}
+    let multi-colg-flag?:bool = false
+    
+    {if column.column-depth > 0 then
+        set multi-colg-flag? = true
+    }
+    
+    {if not (bs-col-index >= 0 and bs-col-index < bs-columns.size) then
+        {if-non-null bs-col then
+            set bs-col-index = {bs-columns.find bs-col}
+        }
+    }
+    
+    {if bs-col-index >= 0 and bs-col-index < bs-columns.size
+        and not multi-colg-flag? then
+        {try
+            {bs-columns.remove bs-col-index}
+         catch e:Exception do
+            {throw {KeyNotFoundException "The specified column doesn't exist. :bs-col-index=" & bs-col-index}}
+        }
+    }
+    
+    {type-switch bs-col
+     case column:RecordGridColumn do
+        || do nothing
+     case bs-col:RecordGridColumnGroup do
+        {if-non-null column then
+            def child-col-idx = {bs-col.child-columns.find column}
+            {if child-col-idx != -1 and not multi-colg-flag? then
+                {bs-col.child-columns.remove child-col-idx}
+                {bs-columns.insert bs-col, bs-col-index}
+             else
+                let (col:#RecordGridColumnGroup) = 
+                    {self.delete-column-group-internal colg = bs-col,
+                        field-name = column.field-name, rf = column.field}
+                set bs-col-index = {bs-columns.find col}
+                {bs-columns.remove bs-col-index}
+                {bs-columns.insert col, bs-col-index}
+            }
+         else
+            {throw {Exception "The column of non-display is not specified."}}
+        }
+    }
+    
+    {set self.base-columns = bs-columns}
+    
+  }
+  
+  {doc-next
+    {purpose The column is non-displayed.}
+    {parameter field-name,Field name}
+    {parameter rf, RecordField}
+  }
+  {method public {hide-column
+                     field-name:#String = null,
+                     rf:#RecordField = null}:void
+    
+    def (k:int, col:#RecordGridColumn) = {self.get-column-index
+                                             field-name = field-name,
+                                             rf = rf
+                                         }
+    
+    {if k == -1 then
+        {return}
+    }
+    
+    {def (gk, bs-col) = {self.get-bs-column-index                                             
+                            field-name = field-name,
+                            rf = rf
+                        }}
+    
+    {if-non-null col,bs-col then
+        {self.deleted-columns-tbl.set col, bs-col}
+        {self.deleted-columns-idx-tbl.set col, gk}
+    }
+    
+    {self.hide-column-internal
+        index = k,
+        column = col,
+        bs-col-index = gk,
+        bs-col = bs-col}
+  }
+  
+  {doc-next
+    {purpose The column group is non-displayed.}
+    {parameter colg-name, Column group name}
+  }
+  {method public {hide-column-group
+                     colg-name:#String = null}:void
+    
+    {def (gk, bs-col) = {self.get-bs-column-index                                             
+                            colg-name = colg-name
+                        }}
+    
+    {if gk == -1 then
+        {return}
+    }
+    
+    {if-non-null bs-col then
+        {self.deleted-column-group-tbl.set bs-col, gk}
+    }
+    
+    {self.hide-column-group-internal
+        colg-name = colg-name,
+        bs-col-index = gk,
+        bs-col = bs-col}
+  }
+  
+  {doc-next
+    {purpose The column made non-display is displayed again. }
+    {parameter field-name, Field name}
+    {parameter rf, RecordField}
+    {parameter position,Display position}
+  }
+  {method public {show-column
+                     field-name:#String = null,
+                     rf:#RecordField = null,
+                     position:int = self.columns.size
+                 }:void
+    
+    let (k:int, col:#RecordGridColumn) = {self.get-column-index
+                                             field-name = field-name,
+                                             rf = rf
+                                         }
+    
+    {if k != -1 then
+        {return}
+    }
+    
+    {if field-name == null or field-name =="" then
+        {if-non-null rf then
+            {set field-name = rf.name}
+         else
+            {throw {Exception "The column doesn't exist.：field-name = " & field-name & ", rf.name=" & rf.name}}
+        }
+    }
+    
+    let deleted-col:#RecordGridColumn
+    
+    {for val key k in self.deleted-columns-tbl do
+        {if k.field-name == field-name then
+            set deleted-col = k
+        }
+    }
+    
+    {if-non-null deleted-col then
+        def (bs-col-index, bs-col) =
+            {self.get-bs-column-index 
+                field-name = field-name,
+                rf = rf,
+                original? = true
+            }
+        def current-bs-cols = {self.base-columns.clone}
+        let del-col-idx:int = {self.deleted-columns-idx-tbl.get deleted-col}
+        
+        {if bs-col isa RecordGridColumn then
+            {current-bs-cols.insert {non-null bs-col}, del-col-idx}
+            {set self.base-columns = current-bs-cols}
+            {self.deleted-columns-tbl.remove deleted-col, error-if-missing? = false}
+            {self.deleted-columns-idx-tbl.remove deleted-col, error-if-missing? = false}
+            {return}
+        }
+        
+        {let insert-col:#BaseRecordGridColumn = null, insert-pos:int = -1}
+        let update?:bool = false
+        
+        {for tag = outer, col key position:int in current-bs-cols do
+            {type-switch col
+             case col:RecordGridColumn do
+             case col:RecordGridColumnGroup do
+                {if not update? then
+                    set (insert-col, update?)
+                    =　{self.add-column-internal
+                          colg = (bs-col asa RecordGridColumnGroup),
+                          add-col = deleted-col}
+                }
+                {if-non-null insert-col then
+                    {if insert-col == col then
+                        set insert-pos = position
+                        {break tag = outer}
+                    }
+                }
+             else
+                {error "unreachable source"}
+            }   
+        }
+        
+        {if insert-pos != -1 then
+            {if-non-null insert-col then
+                {current-bs-cols.remove insert-pos}
+                {current-bs-cols.insert insert-col, insert-pos}
+            }
+            set self.base-columns = current-bs-cols
+            {self.deleted-columns-tbl.remove deleted-col, error-if-missing? = false}
+            {self.deleted-columns-idx-tbl.remove deleted-col, error-if-missing? = false}
+         else
+            {throw {Exception "The column doesn't exist.：field-name = " & field-name & ", rf.name=" & rf.name}}
+        }
+    }
+    
+  }
+  
+  {doc-next 
+    {purpose The pertinent column group is acquired from the parents column group. }
+    {parameter parent-colg,Parent column group object}
+    {parameter colｇ,Retrieval column group object}
+    {return-vals found-index:Index of pertinent column group, 
+        found-colg:Pertinent column group,found?:Retrieval flag}
+  }
+  {method private {get-column-group
+                      parent-colg:#BaseRecordGridColumn = null,
+                      colg:#BaseRecordGridColumn = null
+                  }:(found-index:int, found-colg:#RecordGridColumnGroup, found?:bool)
+    
+    let found-colg:#RecordGridColumnGroup
+    let found-index:int
+    let found?:bool = false
+    
+    {type-switch parent-colg
+     case rgcg-list:RecordGridColumnGroup do
+        {for tag = outer, child-col key i:int in rgcg-list.child-columns do
+            {type-switch child-col
+             case child-col:RecordGridColumn do
+             case child-colg:RecordGridColumnGroup do
+                {if-non-null colg then
+                    {if child-colg == colg then
+                        {return i, child-colg, true} 
+                    }
+                    set (found-index, found-colg, found?)
+                    = {self.get-column-group parent-colg = child-colg, colg = colg}
+                }
+             else
+                {error "Element outside assumption"}
+            }
+        }
+     case rgc:RecordGridColumn do
+        || do nothing
+    }
+    
+    {if found? then
+        {return found-index, found-colg, found?}
+     else
+        {return -1, null, false}
+    }
+  }
+  
+  {doc-next
+    {purpose The column is added.}
+    {parameter new-col,Added column}
+    {parameter colg-name,Column group name in which column is added}
+    {parameter new-col-index,Position of inserted column}
+  }
+  {method public {add-column
+                     new-col:#RecordGridColumn = null,
+                     colg-name:#String = null,
+                     new-col-index:int = -1
+                 }:void
+    
+    {if-non-null new-col then
+        let bs-col:#BaseRecordGridColumn
+        let bs-col-index:int
+        let (k:int, col:#RecordGridColumn) = {self.get-column-index
+                                                 field-name = new-col.field-name
+                                             }
+        
+        {if k != -1 then
+            {throw {Exception "The column already exists.：new-col = " & new-col.field-name}}
+            {return}
+        }
+        
+        {if-non-null colg-name then
+            set (bs-col-index, bs-col) =
+                {self.get-bs-column-index 
+                    colg-name = colg-name,
+                    original? = false
+                }
+            set new-col.parent-group = (bs-col asa RecordGridColumnGroup)
+            let del-idx:int = {(new-col.parent-group.child-columns).find new-col}
+            {new-col.parent-group.child-columns.remove del-idx}
+         else
+            set bs-col = new-col
+        }
+        
+        def current-bs-cols = {self.base-columns.clone}
+        
+        {if bs-col isa RecordGridColumn then
+            {if new-col-index == -1 then
+                {current-bs-cols.insert {non-null bs-col}, self.base-columns.size}
+                {set self.base-columns = current-bs-cols}
+                {return}
+             else
+                {current-bs-cols.insert {non-null bs-col}, new-col-index}
+                {set self.base-columns = current-bs-cols}
+                {return}
+            }
+        }
+        
+        let insert-col:#BaseRecordGridColumn = null
+        let insert-pos:int = -1
+        let update?:bool = false
+        
+        {for tag = outer, col key position:int in current-bs-cols do
+            {type-switch col
+             case col:RecordGridColumn do
+                || do nothing
+             case col:RecordGridColumnGroup do
+                {if not update? then
+                    set (insert-col, update?)
+                    =　{self.add-column-internal
+                          colg = (bs-col asa RecordGridColumnGroup),
+                          add-col = new-col,
+                          new-col-index = new-col-index}
+                }
+                {if-non-null insert-col then
+                    {if insert-col == col then
+                        set insert-pos = position
+                        {break tag = outer}
+                    }
+                }
+             else
+                {error "unreachable source"}
+            }   
+        }
+        
+        {if insert-pos != -1 then
+            {if-non-null insert-col then
+                {current-bs-cols.remove insert-pos}
+                {current-bs-cols.insert insert-col, insert-pos}
+            }
+            set self.base-columns = current-bs-cols
+        }
+    }
+    
+  }  
+  
+  {doc-next
+    {purpose The column group is added.}
+    {parameter new-colg,Object of column group that adds it}
+    {parameter parent-colg-name,Parents column group name in which column group is added}
+    {parameter new-colg-index,Position of column group}
+    {parameter new-columns,Array of column added to column group}
+  }
+  {method public {add-column-group
+                     new-colg:#RecordGridColumnGroup = null,
+                     parent-colg-name:#String = null,
+                     new-colg-index:int = -1,
+                     new-columns:#{Array-of BaseRecordGridColumn} = null
+                 }:void
+    
+    {if-non-null new-colg then
+        let bs-colg:#BaseRecordGridColumn
+        let bs-colg-index:int
+        def current-bs-cols = {self.base-columns.clone}
+        set new-colg.child-columns = {new-columns.clone}
+        
+        set (bs-colg-index, bs-colg) =
+            {self.get-bs-column-index 
+                colg-name = new-colg.caption,
+                original? = false
+            }
+        
+        {if bs-colg-index != -1 then
+            {throw {Exception "The column group already exists.：new-colg = " & new-colg.caption}}
+            {return}
+        }
+        
+        {if-non-null parent-colg-name then
+            set (bs-colg-index, bs-colg) =
+                {self.get-bs-column-index 
+                    colg-name = parent-colg-name,
+                    original? = false
+                }
+            {if-non-null bs-colg then
+                set new-colg.parent-group = (bs-colg asa RecordGridColumnGroup)
+                let del-idx:int = {(new-colg.parent-group.child-columns).find new-colg}
+                {new-colg.parent-group.child-columns.remove del-idx}
+             else
+                {throw {Exception "The parents column group doesn't exist.：parent-colg-name = " & parent-colg-name}}
+                {return}
+            }
+         else
+            {if new-colg isa RecordGridColumnGroup then
+                {if new-colg-index == -1 then
+                    {current-bs-cols.append {non-null new-colg}}
+                    {set self.base-columns = current-bs-cols}
+                    {return}
+                 else
+                    {current-bs-cols.insert {non-null new-colg}, new-colg-index}
+                    {set self.base-columns = current-bs-cols}
+                    {return}
+                }
+            }
+        }
+        
+        let insert-col:#BaseRecordGridColumn = null
+        let insert-pos:int = -1
+        let update?:bool = false
+        
+        {for tag = outer, col key position:int in current-bs-cols do
+            {type-switch col
+             case col:RecordGridColumn do
+                || do nothing
+             case colg:RecordGridColumnGroup do
+                {if not update? then
+                    set (insert-col, update?)
+                    =　{self.add-column-internal
+                          colg = (bs-colg asa RecordGridColumnGroup),
+                          add-col = new-colg,
+                          new-col-index = new-colg-index}
+                }
+                {if-non-null insert-col then
+                    {if insert-col == col then
+                        set insert-pos = position
+                        {break tag = outer}
+                    }
+                }
+             else
+                {error "unreachable source"}
+            }   
+        }
+        
+        {if insert-pos != -1 then
+            {if-non-null insert-col then
+                {current-bs-cols.remove insert-pos}
+                {current-bs-cols.insert insert-col, insert-pos}
+            }
+            set self.base-columns = current-bs-cols
+        }
+    }
+    
+  }  
+  
+  {doc-next 
+    {purpose The column and the column group are acquired.}
+    {parameter colg,Object of parents column group}
+    {parameter field-name,Field name}
+    {parameter colg-name,Column group name}
+    {parameter rf,RecordField}
+    {return-vals index:Column group index, col:Column group obect, flag Column retrieval flag}
+  }
+  {method private {get-bs-column-index-internal
+                      colg:#RecordGridColumnGroup = null,
+                      field-name:#String = null,
+                      colg-name:#String = null,
+                      rf:#RecordField = null
+                  }:(index:int, rgc:#BaseRecordGridColumn, flag?:bool)
+    
+    let found-index:int
+    let found-colg:#BaseRecordGridColumn
+    let found-flag?:bool
+    
+    {for tag = outer, child-col key i:int in colg.child-columns do
+        {type-switch child-col
+         case child-col:RecordGridColumn do
+            {if-non-null field-name then
+                {if child-col.field-name == field-name then
+                    set found-flag? = true
+                    set found-index = i
+                    set found-colg = colg
+                    {break tag = outer}
+                }
+             else
+                {if-non-null cf=child-col.field, rf then
+                    {if {is-same-field cf, rf}then
+                        set found-flag? = true
+                        set found-index = i
+                        set found-colg = colg
+                        {break tag = outer}
+                    }
+                }
+            }
+         case child-colg:RecordGridColumnGroup do
+            {if child-colg.caption == colg-name then
+                set found-flag? = true
+                set found-index = i
+                set found-colg = child-colg
+                {break tag = outer}
+            }
+            
+            set (found-index, found-colg, found-flag?)
+            = {self.get-bs-column-index-internal colg = child-colg,
+                  field-name = field-name, colg-name = colg-name, rf = rf}
+            
+            {if found-flag? then
+                {return found-index, found-colg, found-flag?}
+            }
+         else
+            {error "Element outside assumption"}
+        }
+    }
+    
+    {if found-flag? then
+        {return found-index, found-colg, found-flag?}
+     else
+        {return -1, null, false}
+    }
+    
+  }
+  
+  {doc-next 
+    {purpose The column and the column group are added to the parents column group.}
+    {parameter colg,Object of column group that adds column}
+    {parameter add-col,Object of additional column and additional column group}
+    {parameter new-col-index,Additional position}
+    {parameter flag?,Additional completion flag}  
+    {return-vals update-colg:Updated column group object, update?:Additional completion flag}
+  }
+  {method private {add-column-internal
+                      colg:#RecordGridColumnGroup = null,
+                      add-col:#BaseRecordGridColumn = null,
+                      new-col-index:int = -1,
+                      flag?:bool = false
+                  }:(update-colg:#RecordGridColumnGroup, update?:bool)
+    
+    let update-colg:#RecordGridColumnGroup　= colg
+    let update?:bool = flag?
+    
+    {if not update? then
+        let child-colg-list:{Array-of BaseRecordGridColumn} = update-colg.child-columns
+        {type-switch add-col
+         case col:RecordGridColumn do
+            let idx:int = -1
+            set idx = {child-colg-list.find col}
+            {if idx == -1 then
+                {if new-col-index != -1 then
+                    {child-colg-list.insert col, new-col-index}
+                 else
+                    let col-idx:int = {self.deleted-columns-idx-tbl.get col}
+                    {if col-idx != -1 then
+                        {child-colg-list.insert col, col-idx}
+                     else
+                        {child-colg-list.append col}
+                    }
+                }
+                set update? = true
+            }
+         case colg:RecordGridColumnGroup do
+            {if update-colg.caption == colg.parent-group.caption then
+                let idx:int = -1
+                set idx = {child-colg-list.find colg}
+                {if idx == -1 then
+                    {if new-col-index != -1 then
+                        {child-colg-list.insert colg, new-col-index}
+                     else
+                        let col-idx:int = -1
+                        {try
+                            set col-idx = {self.deleted-column-group-tbl.get colg}
+                         catch e:KeyNotFoundException do
+                            set col-idx = -1
+                        }
+                        {if col-idx != -1 then
+                            {child-colg-list.insert colg, col-idx}
+                         else
+                            {child-colg-list.append colg}
+                        }
+                    }
+                    set update? = true
+                }
+            }
+         else
+            {error "unreachable source"}
+        }
+        
+        {if update? then
+            set update-colg.child-columns = child-colg-list
+            {while update-colg.column-depth > 0 do
+                set (update-colg, update?) =
+                    {self.update-column-group update-colg = update-colg}
+            }
+            {if update? then
+                {return update-colg, update?}
+            }
+        }
+        
+        {for tag = outer, col key position:int in child-colg-list do
+            {type-switch col
+             case col:RecordGridColumn do
+                || do nothing
+             case colg:RecordGridColumnGroup do
+                set (update-colg, update?)
+                = {self.add-column-internal
+                      colg = colg,
+                      add-col = add-col}
+                {if update? then
+                    {break tag = outer}
+                }
+             else
+                {error "unreachable source"}
+            }   
+        }
+    }
+    
+    {if update? then
+        {return update-colg, update?}
+     else
+        {return null, false} 
+    }
+    
+  }
+  
+  
+  {doc-next 
+    {purpose The column and the column group are deleted.}
+    {parameter colg,Column group object}
+    {parameter field-name,Field name}
+    {parameter colg-name,Column group name}
+    {parameter rf,RecordField}
+    {return-vals Updated column group object}
+  }
+  {method private {delete-column-group-internal
+                      colg:#RecordGridColumnGroup = null,
+                      field-name:#String = null,
+                      colg-name:#String = null,
+                      rf:#RecordField = null
+                  }:(update-colg:#RecordGridColumnGroup)
+    
+    let update-colg:#RecordGridColumnGroup
+    
+    {for tag = outer, child-col key i:int in colg.child-columns do
+        {type-switch child-col
+         case child-col:RecordGridColumn do
+            {if-non-null field-name then
+                {if child-col.field-name == field-name then
+                    set update-colg = child-col.parent-group
+                    let child-colg-list:{Array-of BaseRecordGridColumn}
+                    = update-colg.child-columns
+                    let index:int = {child-colg-list.find child-col}
+                    {child-colg-list.remove index}
+                    set update-colg.child-columns = child-colg-list
+                    
+                    {while update-colg.column-depth > 0 do
+                        set (update-colg) =
+                            {self.update-column-group update-colg = update-colg}
+                    }
+                    {return update-colg} 
+                }
+            }
+         case child-colg:RecordGridColumnGroup do
+            {if-non-null colg-name then
+                {if child-colg.caption == colg-name then
+                    set update-colg = child-colg.parent-group
+                    let child-colg-idx:int
+                    = {update-colg.child-columns.find child-colg}
+                    {update-colg.child-columns.remove child-colg-idx}
+                    
+                    {while update-colg.column-depth > 0 do
+                        set (update-colg) =
+                            {self.update-column-group update-colg = update-colg}
+                    }
+                    {return update-colg} 
+                }
+            }
+            
+            {self.delete-column-group-internal 
+                colg = child-colg, 
+                field-name = field-name, 
+                colg-name = colg-name,
+                rf = rf}
+         else
+            {error "Element outside assumption"}
+        }
+    }
+    
+    {return null}
+    
+  }
+  
+  {doc-next 
+    {purpose The update of the child column group is reflected in the parents column group.}
+    {parameter update-colg,Updated column group object}
+    {return-vals update-colg:Column group that updates it to most significant, flag?:Column retrieval flag}
+  }
+  {method private {update-column-group
+                      update-colg:#RecordGridColumnGroup = null
+                  }:(update-colg:#RecordGridColumnGroup, flag?:bool)
+    
+    let flag:bool = true
+    let parent-colg:#RecordGridColumnGroup = update-colg.parent-group
+    let parent-colg-list:{Array-of BaseRecordGridColumn} = parent-colg.child-columns
+    
+    {if-non-null parent-colg then
+        {for tag = outer, child-col in parent-colg-list do
+            {type-switch child-col
+             case child-col:RecordGridColumn do
+                || do nothing
+             case child-col-g:RecordGridColumnGroup do
+                {if child-col-g.caption == update-colg.caption then
+                    let index:int = -1
+                    set index = {parent-colg-list.find child-col-g}
+                    {parent-colg-list.remove index}
+                    {parent-colg-list.insert (update-colg asa RecordGridColumnGroup), index}
+                    set parent-colg.child-columns = parent-colg-list
+                    {break tag = outer}
+                }
+             else
+                {error "Element outside assumption"}
+            }
+        }
+     else
+        {return update-colg, flag}
+    }
+    
+    {return parent-colg, flag}
+    
+  }
+  
+  {doc-next
+    {purpose The specified column is deleted.}
+    {parameter field-name, Field name}
+    {parameter rf, RecordField}
+  }
+  {method public {delete-column
+                     field-name:#String = null,
+                     rf:#RecordField = null}:void
+    
+    def (k:int, col:#RecordGridColumn) = {self.get-column-index
+                                             field-name = field-name,
+                                             rf = rf
+                                         }
+    
+    {if k == -1 then
+        {return}
+    }
+    
+    {def (gk, bs-col) = {self.get-bs-column-index                                             
+                            field-name = field-name,
+                            rf = rf
+                        }}
+    
+    {self.hide-column-internal
+        index = k,
+        column = col,
+        bs-col-index = gk,
+        bs-col = bs-col}
+    
+  }
+  
+  {doc-next
+    {purpose The column group that specifies it is deleted.}
+    {parameter colg-name, Column group name}
+  }
+  {method public {delete-column-group
+                     colg-name:#String = null
+                 }:void
+    
+    {def (gk, bs-col) = {self.get-bs-column-index                                             
+                            colg-name = colg-name
+                        }}
+    
+    {if gk == -1 then
+        {return}
+    }
+    
+    {self.hide-column-group-internal
+        colg-name = colg-name,
+        bs-col-index = gk,
+        bs-col = bs-col}
+    
+  }
+  
+  {doc-next 
+    {purpose The column group that specifies it is non-displayed.}
+    {parameter colg-name,Column group name}
+    {parameter bs-col-index,Index of column group}
+    {parameter bs-col,Object of column group}
+  }
+  {method private {hide-column-group-internal 
+                      colg-name:#String = null,
+                      bs-col-index:int = -1,
+                      bs-col:#BaseRecordGridColumn = null
+                  }:void
+    
+    let bs-columns = {self.base-columns.clone}
+    let multi-colg-flag?:bool = false
+    
+    {if bs-col.column-depth > 0 then
+        set multi-colg-flag? = true
+    }
+    
+    {if not (bs-col-index >= 0 and bs-col-index < bs-columns.size) then
+        {if-non-null bs-col then
+            set bs-col-index = {bs-columns.find bs-col}
+        }
+    }
+    
+    {if bs-col-index >= 0 and bs-col-index < bs-columns.size
+        and not multi-colg-flag? then
+        {try
+            {bs-columns.remove bs-col-index}
+            {set self.base-columns = bs-columns}
+            {return}
+         catch e:Exception do
+            {throw {KeyNotFoundException "The specified column doesn't exist. : bs-col-index=" & bs-col-index}}
+        }
+    }
+    
+    let (update-colg:#RecordGridColumnGroup)
+    = {self.delete-column-group-internal
+          colg = (bs-col asa RecordGridColumnGroup).parent-group,
+          colg-name = colg-name}
+    
+    set bs-col-index = {bs-columns.find update-colg}
+    {bs-columns.remove bs-col-index}
+    {bs-columns.insert update-colg, bs-col-index}
+    {set self.base-columns = bs-columns}
+    
+  }
+  
+  {doc-next
+    {purpose The column group that specifies it is displayed again.}
+    {parameter colg-name, Column group name displayed again}
+  }
+  {method public {show-column-group
+                     colg-name:#String = null
+                 }:void
+    
+    def (bs-col-index, bs-col) =
+        {self.get-bs-column-index 
+            colg-name = colg-name,
+            original? = false
+        }
+    
+    {if bs-col-index != -1 then
+        {return}
+    }
+    
+    let deleted-colg:#RecordGridColumnGroup
+    let del-colg-idx:int
+    
+    {for val key k in self.deleted-column-group-tbl do
+        {if (k asa RecordGridColumnGroup).caption == colg-name then
+            set deleted-colg = (k asa RecordGridColumnGroup)
+            set del-colg-idx = val
+        }
+    }
+    
+    {if-non-null deleted-colg then
+        def current-bs-cols = {self.base-columns.clone}
+        {if deleted-colg.column-depth == 0 then
+            {current-bs-cols.insert deleted-colg, del-colg-idx}
+            {set self.base-columns = current-bs-cols}
+            {self.deleted-column-group-tbl.remove deleted-colg, error-if-missing? = false}
+            {return}
+        }
+        {let insert-col:#BaseRecordGridColumn　=　null, insert-pos:int　=　-1}
+        let update?:bool = false
+        
+        {for tag = outer, col key position:int in current-bs-cols do
+            {type-switch col
+             case col:RecordGridColumn do
+                || do nothing
+             case colg:RecordGridColumnGroup do
+                {if not update? then
+                    set (insert-col, update?)
+                    =　{self.add-column-internal
+                          colg = colg,
+                          add-col = deleted-colg}
+                }
+                {if update? then
+                    {if-non-null insert-col then
+                        {if insert-col == col then
+                            set insert-pos = position
+                            {break tag = outer}
+                        }
+                    }
+                }
+             else
+                {error "unreachable source"}
+            }   
+        }
+        
+        {if insert-pos != -1 then
+            {if-non-null insert-col then
+                {current-bs-cols.remove insert-pos}
+                {current-bs-cols.insert insert-col, insert-pos}
+            }
+            set self.base-columns = current-bs-cols
+            {self.deleted-column-group-tbl.remove deleted-colg, error-if-missing? = false}
+         else
+            {throw {Exception "The column group doesn't exist. : colg-name = " & colg-name}}
+        }
+    }
+    
+  }
+  
+}
+
+
+{doc-next
+    {purpose RecordField is compared.}
+    {parameter field-a, RecoadField}
+    {parameter field-b, RecoadField}
+    {return-vals bool}
+}
+{define-proc {is-same-field
+                 field-a:RecordField,
+                 field-b:RecordField,
+                 compare-strictly?:bool = false
+             }:bool
+    
+    {if not compare-strictly? then
+        {if field-a == field-b then
+            {return true}
+        }
+     else
+        {if field-a.caption == field-b.caption and
+            field-a.name == field-b.name || and
+            || field-a.default-value == field-b.default-value and
+            || field-a.domain == field-b.domain and
+            || field-a.index-type == field-b.index-type and
+            || field-a.modifiable? == field-b.modifiable? and
+            || field-a.nullable? == field-b.nullable? and
+            || field-a.required? == field-b.required?
+         then
+            {return true}
+        }
+    }
+    
+    {return false}
+    
+}
