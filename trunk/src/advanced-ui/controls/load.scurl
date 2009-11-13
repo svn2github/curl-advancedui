@@ -43,5 +43,6 @@
     "cube-frame.scurl",
     "fisheye.scurl",
     "zoom-textfield.scurl",
-    "oneclick-textfield.scurl"
+    "oneclick-textfield.scurl",
+    "record-grid-enhance.scurl"
 }
