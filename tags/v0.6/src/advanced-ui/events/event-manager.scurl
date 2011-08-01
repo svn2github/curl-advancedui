@@ -1,0 +1,164 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+||
+|| EventManager
+||
+{define-class public open EventManager
+
+  field private manage-id:int = -1
+  field constant manage-events:{HashTable-of int, 
+                                {Tuple2-of EventTarget, EventHandler}}
+  
+  {constructor public {default}
+    
+    set self.manage-events = 
+        {{HashTable-of int, {Tuple2-of EventTarget, EventHandler}}}
+  }
+  
+  || register 
+  {method public open {register
+                          from:EventTarget,
+                          from-event-class:ClassType,
+                          to:EventTarget,
+                          to-event-class:ClassType
+                      }:int
+    
+    {if not (from isa EventTarget and to isa EventTarget and 
+             {from-event-class.subtype-of? Event} and 
+             {to-event-class.subtype-of? Event}) 
+     then
+        {throw {IllegalArgumentException "Argument is not proper type."}}
+    }
+    {if {from-event-class.subtype-of? NotifyEvent} then
+        {throw {IllegalArgumentException "Cannnot set NotifyEvent to from-event"}}
+    }
+    
+    {inc self.manage-id}
+    let event-handler:EventHandler =
+        {on from-event-class do
+            || NOTE: To fire the "from" first, use the "after".
+            {after 0s do
+                {to.handle-event 
+                    {with-compiler-directives allow-any-calls? = true do
+                        {if {to-event-class.subtype-of? NotifyEvent} then
+                            {NotifyEvent from, from-event-class} asa Event
+                         else
+                            {to-event-class} asa Event
+                        }
+                    }
+                }
+            }
+        }
+    
+    {self.manage-events.set 
+        self.manage-id, 
+        {{Tuple2-of EventTarget, EventHandler} from, event-handler}
+    }
+    {from.add-event-handler event-handler}
+    {return self.manage-id}
+  }
+
+  || register some events
+  {method public open {register-some-events
+                          from:EventTarget,
+                          from-event-class:ClassType,
+                          to-events:{Array-of {Tuple2-of EventTarget, ClassType}}
+                      }:{Array-of int}
+    def manage-ids = {{Array-of int}}
+    {for to-event in to-events do
+        {manage-ids.append 
+            {self.register 
+                from, 
+                from-event-class, 
+                to-event[0] asa EventTarget, 
+                to-event[1] asa ClassType
+            }
+        }
+    }
+    {return manage-ids}
+  }
+
+  || unregister
+  {method public open {unregister 
+                          manage-id:int
+                      }:void
+
+    def manage-event = self.manage-events[manage-id]
+    {(manage-event[0] asa EventTarget).remove-event-handler 
+        manage-event[1] asa EventHandler}
+    {self.manage-events.remove manage-id}
+  }
+
+  || unregister some events
+  {method public open {unregister-some-events
+                          manage-ids:{Array-of int}
+                      }:void
+
+    {for manage-id in manage-ids do
+        {self.unregister manage-id}
+    }
+  }
+
+  || clear
+  {method public open {clear}:void
+    {for manage-event key manage-id in self.manage-events do
+        {(manage-event[0] asa EventTarget).remove-event-handler 
+            manage-event[1] asa EventHandler}
+    }
+    {self.manage-events.clear}
+    set self.manage-id = 0
+  }
+}
+
+||
+|| NotifyEvent
+||
+{define-class public open NotifyEvent 
+  {inherits Event}
+  
+  field constant public-get subject:EventTarget
+  field constant public-get subject-event-class:ClassType
+
+  {constructor public {default 
+                          subject:EventTarget, 
+                          subject-event-class:ClassType
+                      }
+    
+    set self.subject = subject
+    set self.subject-event-class = subject-event-class
+  }
+}
+
+||
+|| MessageNotifyEvent
+||
+|#
+{define-class public open MessageNotifyEvent 
+  {inherits Event}
+  
+  field constant public-get message:any
+
+  {constructor public {default 
+                          message:any
+                      }
+
+    set self.message = message
+  }
+}
+#|

@@ -1,0 +1,85 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Hitoshi Okada
+|||
+
+{curl 6.0, 7.0 applet}
+{curl-file-attributes character-encoding = "shift-jis"}
+{applet manifest = "manifest.mcurl"}
+
+{import * from COM.CURLAP.ADVANCED-UI.CONTROLS}
+{import * from COM.CURLAP.ADVANCED-UI.CONTAINERS}
+{api-version-switch
+ case "7.0+" do
+    || do nothing
+ case "6.0+" do
+    {import * from COM.CURL.GUI.STYLED-CONTROLS}
+    {install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
+}
+
+{def container = 
+    {FromToDateFieldContainer 
+        {CoreDateField height = 1cm, font-size = 16pt}, 
+        {CoreDateField height = 1cm, font-size = 16pt}, 
+        between-date-fields = {text --},
+        width = 10cm
+    }}
+    
+
+{View
+    {spaced-vbox
+        {text Nomal DateField},
+        {DateField width = 5cm, height = 1cm, font-size = 16pt},
+
+        {text Advanced DateField},
+        {CoreDateField width = 5cm, height = 1cm, font-size = 16pt},
+        {FromToDateFieldContainer 
+            {CoreDateField height = 1cm, font-size = 16pt}, || from
+            {CoreDateField height = 1cm, font-size = 16pt}, || to
+            between-date-fields = {text --},
+            width = 10cm, 
+            {on e:ValueFinished at v:FromToDateFieldContainer do
+                {if not v.valid-values? then
+                    {popup-message "Not valid values..."}
+                }
+            }
+        },
+        {FromToDateFieldContainer 
+            {CoreDateField height = 1cm, width = 5cm, font-size = 16pt}, || from
+            {CoreDateField height = 1cm, width = 5cm, font-size = 16pt}, || to
+            between-date-fields = {text --},
+            vertical? = true,
+            width = 10cm, 
+            {on e:ValueFinished at v:FromToDateFieldContainer do
+                {if not v.valid-values? then
+                    {popup-message "Not valid values..."}
+                }
+            }
+        },
+        {spaced-hbox
+            container,
+            {CommandButton label = "valid values?",
+                {on Action do
+                    {popup-message container.valid-values? & container.from-value & " " & container.to-value}
+                }
+            }
+        }
+    },
+    visibility = "normal",
+    {on WindowClose do
+        {exit}
+    }
+}

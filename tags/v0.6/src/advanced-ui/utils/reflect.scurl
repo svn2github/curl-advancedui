@@ -1,0 +1,116 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Masaki Kodan
+|||
+
+||
+|| reflection
+||
+{define-class public ReflectImage {inherits Frame}
+
+  field private _orig-pixmap    :Pixmap
+  field private _reflect-pixmap :Pixmap
+
+  field private _reflect-height :int
+
+  {constructor public {default
+                          image         :Url,
+                          from-pixmap   :#Pixmap = null,
+                          reflect-height:int = 20,
+                          width         :any = null,
+                          height        :any = null,
+                          ...
+                      }
+    {construct-super ...}
+    {set-rendering-mode "high-quality"}
+
+    {if from-pixmap != null then
+        set self._orig-pixmap = from-pixmap asa Pixmap
+     else
+        set self._orig-pixmap = {Pixmap.from-url image}
+    }
+    set self._reflect-pixmap = {Pixmap self._orig-pixmap.width, self._orig-pixmap.height + reflect-height}
+    set self._reflect-height = reflect-height
+
+    {self.create-pixmap}
+    set self.background = {Background.from-Pixmap self._reflect-pixmap}
+    set self.width      = {if width == null then self._reflect-pixmap.width * 1px else width}
+    set self.height     = {if height == null then self._reflect-pixmap.height * 1px else height}
+    
+  }
+
+  {method private {create-pixmap}:void
+    {for i:int = 0 below self._orig-pixmap.height do
+        {for j:int = 0 below self._orig-pixmap.width do
+            {self._reflect-pixmap.set j, i, {self._orig-pixmap.get j, i}}
+        }
+    }
+    {for i:int = 0 below self._reflect-height do
+        {for j:int = 0 below self._orig-pixmap.width do
+            let orig-pixel:Pixel = {self._orig-pixmap.get j, self._orig-pixmap.height - i - 1}
+
+            ||change alpha channel
+||--            let new-pixel :Pixel = {Pixel.from-float
+||--                                       orig-pixel.red,
+||--                                       orig-pixel.green,
+||--                                       orig-pixel.blue,
+||--                                       alpha = 0.4f - ((i / self._reflect-height) * 0.4f) asa float}
+
+            ||change rgb color
+            let new-pixel :Pixel = {Pixel.from-float
+                                       orig-pixel.red + ((1 - orig-pixel.red) / 3) + (1 - orig-pixel.red) * (i / self._reflect-height) asa float,
+                                       orig-pixel.green + ((1 - orig-pixel.green) / 3) + (1 - orig-pixel.green) * (i / self._reflect-height) asa float,
+                                       orig-pixel.blue + ((1 - orig-pixel.blue) / 3) + (1 - orig-pixel.blue) * (i / self._reflect-height) asa float
+                                   }
+            
+            
+
+
+            
+            {self._reflect-pixmap.set j, i + self._orig-pixmap.height, new-pixel}
+        }
+    }
+  }
+
+  {getter public {original}:Frame
+    let orig-frame:Frame = {Frame background = {Background.from-Pixmap self._orig-pixmap},
+                               width = self._orig-pixmap.width * 1px,
+                               height = self._orig-pixmap.height * 1px}
+    {return orig-frame}
+  }
+
+  {getter public {pixmap}:Pixmap
+    {return self._reflect-pixmap}
+  }
+
+  {setter public {image-url new-url:Url}:void
+    set self._orig-pixmap = {Pixmap.from-url new-url}
+    set self._reflect-pixmap = {Pixmap self._orig-pixmap.width, self._orig-pixmap.height + self._reflect-height}
+    {self.create-pixmap}
+    set self.background = {Background.from-Pixmap self._reflect-pixmap}
+  }
+
+  {setter public {reflect-height reflect-height:int}:void
+    set self._reflect-height = reflect-height
+    set self._reflect-pixmap = {Pixmap self._orig-pixmap.width, self._orig-pixmap.height + self._reflect-height}
+    {self.create-pixmap}
+    set self.background = {Background.from-Pixmap self._reflect-pixmap}
+    set self.height = self._reflect-pixmap.height * 1px
+  }
+  
+}
+
+

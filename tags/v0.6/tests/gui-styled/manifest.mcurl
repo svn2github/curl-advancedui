@@ -1,0 +1,19 @@
+{curl 6.0 manifest}
+{curl-file-attributes character-encoding = "windows-latin-1"}
+{manifest COM.CURL.GUI.STYLED,
+    version = "6.0"
+}{component file DEFAULT-STYLE-SHEET,
+    location = "default-style.scurl"
+}
+
+{component package COM.CURL.GUI.STYLED-CONTROLS,
+    location = "skinned-controls/load.pcurl",
+    version = "6.0"
+}{component file dss-defs.scurl,
+    location = "dss-defs.scurl"
+}{component directory resources,
+    location = "resources"
+}{component translations COM.CURL.GUI.STYLED-CONTROLS,
+    locale="ja",
+    location="resources/ja/messages.xml"
+}

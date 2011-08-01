@@ -1,0 +1,212 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Minoru Asegawa
+|||
+
+{import * from CURL.GRAPHICS.DISPLAY}
+
+||
+|| sweep window
+||
+{define-class public SweepWindow {inherits View}
+
+  field private _x:Distance
+  field private _y:Distance
+
+  field private _org_x:Distance
+  field private _org_y:Distance
+  
+  field private _window_width:Distance
+  field private _window_height:Distance
+  field private _display_width:Distance
+  field private _display_height:Distance
+
+  field private _edge:Distance = 30pt
+  field private _swept?:bool = false
+  field public-get moving?:bool = false
+  field private _corner:String
+
+  field private owner:#SweepWindow
+  field package-set public-get child-view:{Array-of SweepWindow} = {{Array-of SweepWindow}}
+  field private event-caused?:bool = false
+
+  {constructor public {default
+                          view-owner:#SweepWindow = null,
+                          corner:String = "upper-left",
+                          sweep-key:char = KeyPressValue.f12,
+                          ...}
+
+    set self._corner = corner
+    let args:Arguments = {Arguments}
+
+    {if-non-null view-owner
+     then
+        set self.owner = view-owner 
+        {self.owner.child-view.append self}
+        {self.add-event-handler
+            {on DestroyNotify do
+                {self.owner.child-view.remove
+                    {self.owner.child-view.find self}
+                }
+            }
+        }
+
+        {args.append view-owner,keyword = "owner"}
+    }
+
+    {construct-super
+        halign = "center",
+        valign = "center",
+        {splice args},
+        {splice ...},
+        {on WindowClose do
+            {self.destroy}
+        }
+    }
+
+    let dis:Display = {Display.get-primary}
+    
+    set self._display_width = dis.width
+    set self._display_height = dis.height
+
+    set self._window_width = {any-to-Distance self.width}
+    set self._window_height = {any-to-Distance self.height}
+
+    {self.request-key-focus}
+  
+    {self.add-event-handler
+        {on kp:KeyPress do
+            {if kp.value == sweep-key then
+                {self.notify}
+            }
+        }
+    }
+    
+  }
+
+  ||notify
+  {method public {notify}:void
+    
+    {if self.event-caused?
+     then
+        {return}
+    }
+
+    set self.event-caused? = true
+
+    {if-non-null self.owner
+     then
+        {if self._swept? then
+            {self.restore}
+         else
+            {self.sweep}
+        }  
+        {self.owner.notify}
+     else
+        {after 0s do
+            {self.show}
+            {self.request-key-focus}
+        }
+    }
+    
+    {for child:SweepWindow in self.child-view do
+        {child.notify}
+    }
+    
+    set self.event-caused? = false
+  }
+
+  ||Sweep
+  {method public {sweep
+                     interval:Time = .0001s,
+                     repeat:int = 40
+                 }:void
+
+    set self._swept? = true
+    set self.moving? = true
+    
+    ||get current position
+    set (self._x, self._y) = {self.get-position-in-display}
+    set self._org_x = self._x
+    set self._org_y = self._y
+
+    ||calc distance
+    let x_move:Distance
+    let y_move:Distance
+
+    {switch self._corner
+     case "upper-left" do
+        set x_move = (-self._window_width - self._x + self._edge)/repeat
+        set y_move = (-self._window_height - self._y + self._edge)/repeat
+     case "upper-right" do
+        set x_move = (self._display_width - self._x - self._edge)/repeat
+        set y_move = (-self._window_height - self._y + self._edge)/repeat
+     case "lower-left" do
+        set x_move = (-self._window_width - self._x + self._edge)/repeat
+        set y_move = (self._display_height - self._y - self._edge)/repeat
+     case "lower-right" do
+        set x_move = (self._display_width - self._x - self._edge)/repeat
+        set y_move = (self._display_height - self._y - self._edge)/repeat
+    }
+
+    {self.animate
+        repeat = repeat,
+        interval = interval,
+        {on TimerEvent do
+            ||move
+            {set self._x = self._x + x_move}
+            {set self._y = self._y + y_move}
+            {self.set-position self._x, self._y}
+        }
+    }
+
+    set self.moving? = false
+    
+  }
+
+  
+  ||restore
+  {method public {restore
+                     interval:Time = .0001s,
+                     repeat:int = 40
+                 }:void
+
+    set self._swept? = false
+    set self.moving? = true
+    
+    set (self._x, self._y) = {self.get-position-in-display}
+
+    ||calc distance
+    let x_move:Distance
+    let y_move:Distance
+    set x_move = (self._x - self._org_x + 3pt)/repeat
+    set y_move = (self._y - self._org_y + 16pt)/repeat
+
+    {self.animate
+        repeat = repeat,
+        interval = interval,
+        {on TimerEvent do
+            ||move
+            {set self._x = self._x - x_move}
+            {set self._y = self._y - y_move}
+            {self.set-position self._x, self._y}
+        }
+    }
+
+    set self.moving? = false
+
+  }
+}

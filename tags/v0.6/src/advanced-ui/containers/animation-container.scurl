@@ -1,0 +1,212 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Hitoshi Okada
+|||
+
+||
+|| VibrationControlCanvas
+||
+{define-class public open VibrationControlCanvas
+  {inherits Canvas}
+
+  {constructor public {default
+                          ...
+                      }
+    {construct-super {splice ...}}
+  }
+
+
+  || vibrate one child.
+  {method public open {vibrate 
+                          child:any, 
+                          vibration-width:Distance = .5mm,
+                          interval:Time = .01s,
+                          repeat:int = 6
+                      }:AnimationTimer
+    {return
+        {AnimationTimer
+            equation = Equation.test,
+            init-y = 1.0,
+            interval = interval,
+            repeat = repeat,
+            {on e:AnimationTimerEvent do
+                def v = e.value-as-int * vibration-width
+                def (x, y) = {self.get-xy child}
+                {self.move-to-xy child, x + v, y + v}
+            }
+        }
+    }
+  }
+
+  || vibrate all children.
+  {method public open {vibrate-all-children 
+                          vibration-width:Distance = .5mm,
+                          interval:Time = .01s,
+                          repeat:int = 6
+                      }:AnimationTimer
+    {return
+        {AnimationTimer
+            equation = Equation.test,
+            init-y = 1.0,
+            interval = interval,
+            repeat = repeat,
+            {on e:AnimationTimerEvent do
+                {for child in self.child-array do
+                    def v = e.value-as-int * vibration-width
+                    def (x, y) = {self.get-xy child}
+                    {self.move-to-xy child, x + v, y + v}
+                }
+            }
+        }
+    }
+  }
+}
+
+
+||
+|| AnimationView 
+||
+{define-class public open AnimationView
+  {inherits View}
+
+  {constructor public {default ...}
+    {construct-super {splice ...}}
+  }
+
+  || show this view using animation
+  {method public open {show-animation
+                          force-on-display?:bool = true, 
+                          center?:bool = false,
+                          interval:Time = .002s,
+                          repeat:int = 100,
+                          pattern:String = "opacity",
+                          finish-proc:#{proc-type {v:AnimationView}:void} = null
+                      }:void
+
+    {switch pattern 
+     case "opacity" do
+        def timer = 
+            {AnimationTimer
+                x = 1.0,
+                interval = interval,
+                repeat = repeat,
+                {on e:AnimationTimerEvent do
+                    {if e.value-as-int == (repeat - 1) then
+                        {self.set-opacity 1}
+                        {if-non-null p = finish-proc then
+                            {p self}
+                        }
+                     else
+                        {self.set-opacity e.value-as-float / repeat}
+                    }
+                }
+            }
+
+        || initial value
+        {self.set-opacity 0 asa float}
+        
+     case "stretch" do
+        {with-compiler-directives allow-any-calls? = true do
+            def h-tmp = self.height
+            def w-tmp = self.width
+            def h = self.height / 2
+            def w = self.width / 2
+            def r = (repeat / 2) asa int || NOTE: half
+            def timer = 
+                {AnimationTimer
+                    x = 1.0,
+                    interval = interval,
+                    repeat = r,
+                    {on e:AnimationTimerEvent do
+                        {if e.value-as-int == (repeat - 1) then
+                            {if-non-null p = finish-proc then
+                                set self.height = h * 2
+                                set self.width = w * 2
+                                {p self}
+                            }
+                         else
+                            def i = e.value-as-int
+                            set self.height = h + i * (h / r)
+                            set self.width = w + i * (w / r)
+                        }
+                    }
+                }
+        
+            || initial values
+            set self.height = h
+            set self.width = w
+        }
+    }
+    {self.show force-on-display? = force-on-display?, center? = center?}
+  }
+
+  || hide this view using animation
+  {method public open {hide-animation
+                          interval:Time = .002s,
+                          repeat:int = 100,
+                          pattern:String = "opacity",
+                          finish-proc:#{proc-type {v:AnimationView}:void} = null
+                      }:void
+   
+    {switch pattern 
+     case "opacity" do
+        def timer = 
+            {AnimationTimer
+                x = 1.0,
+                interval = interval,
+                repeat = repeat,
+                {on e:AnimationTimerEvent do
+                    {if e.value-as-int == (repeat - 1) then
+                        {self.set-opacity 0}
+                        {self.hide}
+                        {self.set-opacity 1}
+                        {if-non-null p = finish-proc then
+                            {p self}
+                        }
+                     else
+                        {self.set-opacity 1 - e.value-as-float / repeat}
+                    }
+                }
+            }
+
+     case "stretch" do
+        {with-compiler-directives allow-any-calls? = true do
+            def h = self.height
+            def w = self.width
+            def timer = 
+                {AnimationTimer
+                    x = 1.0,
+                    interval = interval,
+                    repeat = repeat,
+                    {on e:AnimationTimerEvent do
+                        {if e.value-as-int == (repeat - 1) then
+                            {self.hide}
+                            set self.height = h
+                            set self.width = w
+                            {if-non-null p = finish-proc then
+                                {p self}
+                            }
+                         else
+                            def i = e.value-as-int
+                            set self.height = h - i * (h / repeat)
+                            set self.width = w - i * (w / repeat)
+                        }
+                    }
+                }
+        }
+    }
+  }
+}

@@ -1,0 +1,249 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Hitoshi Okada
+|||
+
+|| NOTE: 
+||   If you use some methods and setters of Canvas, 
+||   you might meet the unexpcted error.
+||   e.g) add, move-to-xy, and such.
+
+
+||
+|| RotatorDirection
+||
+{define-enum public RotatorDirection
+    up,
+    down,
+    left,
+    right
+}
+
+||
+|| RotatorEvent
+||
+{define-class public open RotatorEvent
+  {inherits Event}
+  
+  field public-get index:int
+  field public-get frame:Frame
+
+  {constructor public {default index:int, frame:Frame}
+
+    set self.index = index
+    set self.frame = frame
+  }
+}
+
+||
+|| RotatorCanvas
+||
+{define-class public open RotatorCanvas
+  {inherits Canvas}
+
+  field public-get constant rotating-direction:RotatorDirection
+  field public-get constant rotating-interval:Time
+  field public-get constant rotating-repeat:int
+  field public-get constant rotating-scroll-distance:Distance
+  field public-get constant rotating-scroll-interval:Time
+
+  field private frames:{Array-of Frame}
+  field private rotating-timer:Timer
+
+  {getter public open {rotating-enabled?}:bool
+
+    {return self.rotating-timer.enabled?}
+  }
+
+  {constructor public {default
+                          frames:{Array-of Frame},
+                          height:any = 0cm,
+                          width:any = 0cm,
+                          rotating-direction:RotatorDirection = RotatorDirection.up,
+                          rotating-interval:Time = 1s,
+                          rotating-repeat:int = -1,
+                          rotating-scroll-distance:Distance = .05cm,
+                          rotating-scroll-interval:Time = .01s,
+                          rotating-enabled?:bool = true,
+                          ...
+                      }
+
+    set self.frames = frames
+    set self.rotating-direction = rotating-direction
+    set self.rotating-interval = rotating-interval
+    set self.rotating-repeat = rotating-repeat
+    set self.rotating-scroll-distance = rotating-scroll-distance
+    set self.rotating-scroll-interval = rotating-scroll-interval
+
+    {construct-super height = height, width = width, {splice ...}}
+    
+    || initialize
+    {self.initialize}
+
+    || start to rotate
+    set self.rotating-timer = {self.make-rotating-timer rotating-enabled?}
+  }
+
+  || enable rotating (start)
+  {method public open {enable-rotating}:void
+
+    {if self.rotating-timer.enabled? then
+        {return}
+    }
+    def r-scroll-distance = self.rotating-scroll-distance
+    def r-repeat = self.rotating-repeat
+    def scroll-one-repeat = (self.height asa Distance) / r-scroll-distance
+    set self.rotating-timer.repeat = 
+        {if r-repeat == -1 then
+            -1 
+         else
+            scroll-one-repeat * ((self.frames.size - 1) * r-repeat + (r-repeat - 1))
+        } asa int
+    {self.rotating-timer.enable}
+  }
+
+  || disable rotating (stop)
+  {method public open {disable-rotating}:void
+
+    {if not self.rotating-timer.enabled? then
+        {return}
+    }
+    set self.rotating-timer.repeat = 0
+    {self.rotating-timer.disable}
+  }
+
+  || switch frames to new frames
+||  {method public open {switch-frames frames:{Array-of Frame}}:void
+||
+||    {self.disable-rotating}
+||    set self.frames = frames
+||    {self.initialize}
+||    set self.rotating-timer = {self.make-rotating-timer false}
+||    {self.enable-rotating}
+||  }
+
+  || (Not support)change-rotator-direction
+||  {method public open {change-rotating-direction
+||                          rotating-direction:RotatorDirection
+||                      }:void
+||    
+||    set self.rotating-direction = rotating-direction
+||    {self.initialize}
+||  }
+
+
+  || - - private - -
+  {method private {initialize}:void
+    
+    {self.clear}
+    let count:int
+    {for frame:Frame in self.frames do
+        let (x:Distance, y:Distance) = (0cm, 0cm)
+        {switch self.rotating-direction 
+         case RotatorDirection.up do
+            set y = (self.height asa Distance) * count
+         case RotatorDirection.down do
+            set y = (self.height asa Distance) * count * -1
+         case RotatorDirection.left do
+            set x = (self.width asa Distance) * count
+         case RotatorDirection.right do
+            set x = (self.width asa Distance) * count * -1
+        }
+        set frame.valign = "top" || NOTE:
+        {super.add frame, x = x, y = y}
+        {inc count}
+    }
+  }
+
+  {method private {make-rotating-timer enabled?:bool}:Timer
+    
+    def r-scroll-distance = self.rotating-scroll-distance
+    def frame-size = self.frames.size
+    def r-repeat = self.rotating-repeat
+    def scroll-one-repeat = (self.height asa Distance) / r-scroll-distance
+
+    {return 
+        {Timer
+            enabled? = enabled?,
+            repeat = 
+                {if r-repeat == -1 then
+                    -1 
+                 else
+                    scroll-one-repeat * ((frame-size - 1) * r-repeat + (r-repeat - 1))
+                } asa int,
+            interval = self.rotating-scroll-interval,
+            ||frequency = frequency,
+            ||when = when,
+            delay = self.rotating-interval,
+            {on e:TimerEvent at v:Timer do
+                {for frame:Frame key i:int in self.frames do
+                    def wait = 
+                        {proc {timer:Timer}:void
+                            {self.handle-event {RotatorEvent i, frame}}
+                            {timer.disable}
+                            {after self.rotating-interval do
+                                {timer.enable}
+                            }
+                        }
+                    
+                    let (x:Distance, y:Distance) = {self.get-xy frame}
+                    {switch self.rotating-direction 
+                     case RotatorDirection.up do
+                        set y =
+                            {if y + (self.height asa Distance) <= 0cm then
+                                {wait v}
+                                (self.height asa Distance) * (frame-size - 1) - (r-scroll-distance * 2)
+                             else
+                                y - r-scroll-distance
+                            }
+                        
+                     case RotatorDirection.down do
+                        set y =
+                            {if y - (self.height asa Distance) >= r-scroll-distance * -1 then
+                                {wait v}
+                                ((self.height asa Distance) * (frame-size - 1) + (r-scroll-distance * 2)) * -1
+                             else
+                                y + r-scroll-distance
+                            }
+
+                     case RotatorDirection.left do
+                        set x = 
+                            {if x + (self.width asa Distance) <= 0cm then
+                                {wait v}
+                                (self.width asa Distance) * (frame-size - 1) - (r-scroll-distance * 2)
+                             else
+                                x - r-scroll-distance
+                            }
+                        
+                     case RotatorDirection.right do 
+                        set x = 
+                            {if x - (self.width asa Distance) >= r-scroll-distance * -1 then
+                                {wait v}
+                                ((self.width asa Distance) * (frame-size - 1) + (r-scroll-distance * 2)) * -1
+                             else
+                                x + r-scroll-distance
+                            }
+                     else || do nothing
+                    }
+                    
+                    {super.move-to-xy frame, x, y}
+                }
+            }
+        }
+    }
+  }
+
+}

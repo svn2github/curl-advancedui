@@ -1,0 +1,165 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+{curl 6.0, 7.0 applet}
+{curl-file-attributes character-encoding = "shift-jis"}
+{applet manifest = "manifest.mcurl"}
+
+{import * from COM.CURLAP.ADVANCED-UI.TOOLS}
+{api-version-switch
+ case "7.0+" do
+    || do nothing
+ case "6.0+" do
+    {import * from COM.CURL.GUI.STYLED-CONTROLS}
+    {install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
+}
+
+{value
+
+    let base-frame:Frame = {Frame test-name = "/base-frame"}
+
+    let frame2:Frame = 
+        {Frame
+            test-name = "/frame2",
+            {spaced-vbox
+                test-name = "/frame2/vbox1",
+                width = 5cm,
+                {TextField test-name = "/frame2/tf1",
+                    color = "red", height = 1cm, font-size = 16pt},
+                {TextField test-name = "/frame2/tf2",
+                    color = "green", height = 1cm, font-size = 16pt},
+                {TextField test-name = "/frame2/tf3",
+                    color = "blue", height = 1cm, font-size = 16pt}
+            }
+        }
+
+    let frame1:Frame = 
+        {Frame
+            test-name = "/frame1",
+            {spaced-vbox
+                test-name = "/frame1/vbox1",
+                width = 5cm,
+                {TextField 
+                    test-name = "/frame1/vbox1/tf1",
+                    height = 1cm, font-size = 16pt
+                },
+
+                {TextField 
+                    test-name = "/frame1/vbox1/tf2",
+                    height = 1cm, font-size = 16pt
+                },
+
+                {CheckButton
+                    test-name = "/frame1/vbox1/cbtn1",
+                    height = 1cm, font-size = 16pt
+                },
+
+                {ComboBox
+                    test-name = "/frame1/vbox1/cb1",
+                    height = 1cm, font-size = 16pt,
+                    "1234", "5678", "aaaaa"
+                },
+
+                {spaced-hbox
+                    {CommandButton 
+                        label = "move",
+                        height = 1cm, font-size = 16pt,
+                        test-name = "/frame1/vbox1/btn1",
+                        {on Action do
+                            {base-frame.add frame2, replace? = true}
+                        }
+                    }||,
+                    |#
+                    {CommandButton
+                        label = "popup",
+                        test-name = "/frame1/vbox1/btn2",
+                        {on Action do
+                            {popup-message 
+                                "Succeeded to cancel...",
+                                test-name = "/pop1",
+                                || HACK! test codes.
+                                {on e:DialogShow at v:Dialog do 
+                                    {{UIContext.get-instance}.register v}
+                                }
+                            }
+                        }
+                    },
+
+                    {CommandButton
+                        label = "view",
+                        test-name = "/frame1/vbox1/btn3",
+                        {on Action do
+                            def view = 
+                                {View
+                                    test-name = "/view1",
+                                    width = 2cm, height = 2cm,
+                                    {spaced-vbox
+                                        {TextField test-name = "/view1/tf1"},
+                                        {CommandButton 
+                                            label = "close",
+                                            test-name = "/view1/btn1",
+                                            {on Action do
+                                                {view.close}
+                                            }
+                                        }
+                                    },
+                                    || HACK! test codes.
+                                    {on e:ViewVisibilityEvent at v:View do
+                                        {{UIContext.get-instance}.register v}
+                                    }
+                                }
+                            
+                            {view.show}
+                        }
+                    },
+
+                    {CommandButton
+                        label = "dialog",
+                        test-name = "/frame1/vbox1/btn4",
+                        {on Action do
+                            def dia  = 
+                                {Dialog
+                                    test-name = "/dia1",
+                                    width = 2cm, height = 2cm,
+                                    {spaced-vbox
+                                        {TextField test-name = "/dia1/tf1"},
+                                        {CommandButton 
+                                            label = "close",
+                                            test-name = "/dia1/btn1",
+                                            {on Action do
+                                                {dia.close "Dialog"}
+                                            }
+                                        }
+                                    },
+                                    || HACK! test codes.
+                                    {on e:DialogShow at v:Dialog do
+                                        {{UIContext.get-instance}.register v}
+                                    }
+                                }
+                            || HACK! if modal? is true, it doesn't work.
+                            {dia.show modal? = false}
+                        }
+                    }
+                    #|
+                }
+            }
+        }
+    {base-frame.add frame1}
+
+    base-frame
+}

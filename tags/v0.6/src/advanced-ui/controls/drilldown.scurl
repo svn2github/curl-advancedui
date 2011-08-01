@@ -1,0 +1,312 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+|| - - DrillDown ComboBox - -
+
+|| groub by
+{define-proc package inline {group-by 
+                                records:RecordSet,
+                                field-name:String
+                            }:ListModel
+    
+    def model = {DefaultListModel}
+    {for r in records do
+        def v = r[field-name] & ""
+        {if {model.find v} == -1 then
+            {model.append v}
+        }
+    }
+    {return model}
+}
+
+|| filter
+{define-proc package inline {filter
+                                records:RecordSet,
+                                field-name:String,
+                                value:String
+                            }:RecordSet
+    {return
+        {RecordView 
+            records,
+            filter = 
+                {RecordFilter 
+                    {proc {r:Record}:bool
+                        {return r[field-name] & "" == value} 
+                    }
+                }
+        }
+    }
+}
+
+||
+|| DrilldownComboBox
+||
+{define-class public open DrillDownComboBox
+  {inherits ComboBox}
+
+  field public-get field-name:String
+  field protected record-source:RecordSet
+  field protected parent-combo-box:#DrillDownComboBox
+  field protected childs-combo-box:{Array-of DrillDownComboBox}
+
+  || constructor 
+  {constructor public {default 
+                          field-name:String,
+                          record-source:RecordSet,
+                          parent-combo-box:#DrillDownComboBox = null,
+                          ...
+                      }
+    set self.field-name = field-name
+    set self.record-source = record-source
+    set self.parent-combo-box = parent-combo-box
+    set self.childs-combo-box = {{Array-of DrillDownComboBox}}
+    {construct-super {splice ...}}
+
+    {if self.parent-combo-box == null then
+        set self.data-model = {group-by self.record-source, field-name}
+     else
+        {self.parent-combo-box.childs-combo-box.append self}
+        {self.parent-combo-box.add-event-handler 
+            {on e:ValueChanged at v:DrillDownComboBox do
+                set self.value = ""
+                {self.refresh-child-values self.childs-combo-box}
+                set self.record-source = 
+                    {filter 
+                        v.record-source,
+                        v.field-name, 
+                        v.value
+                    }
+                set self.data-model = 
+                    {group-by self.record-source, self.field-name}
+            }
+        }
+    }
+  }
+
+  || create the child of DrilldownComboBox
+  {method public open {create-child field-name:String}:DrillDownComboBox
+    {return
+        {DrillDownComboBox 
+            field-name, 
+            self.record-source,
+            parent-combo-box = self,
+            font-size = self.font-size,
+            width = self.width,
+            height = self.height,
+            color = self.color,
+            background = self.background
+        }
+    }
+  }
+
+  || refresh child values
+  {method private {refresh-child-values
+                      childs-combo-box:{Array-of DrillDownComboBox}
+                  }:void
+    {for child:DrillDownComboBox in childs-combo-box do
+        set child.value = ""
+        {child.data-model.clear}
+        {if child.childs-combo-box.size > 0 then
+            {self.refresh-child-values child.childs-combo-box}
+        }
+    }
+  }
+}
+
+
+|| - - DrillDown ListBox - -
+|| TODO: RecordSet to tree, xml to tree, json to tree
+
+
+||
+|| DrillDownComponent
+||
+{define-class abstract public DrillDownComponent 
+
+  field public-get protected-set value:any
+  field public-get parent:#DrillDownComponent
+
+  {constructor public {default value:any}
+    set self.value = value
+  }
+}
+
+||
+|| DrillDownNode
+||
+{define-class public open DrillDownNode
+  {inherits DrillDownComponent}
+
+  field constant public-get children:{Array-of DrillDownComponent} 
+
+  {getter public open {children-values}:{Array-of any}
+    def values = {{Array-of any}}
+    {for c in self.children do
+        {values.append c.value}
+    }
+    {return values}
+  }
+  
+  {constructor public {default value:any}
+    set self.children = {{Array-of DrillDownComponent}}
+    {construct-super value}
+  }
+
+  {method public open {append com:DrillDownComponent}:void
+    set com.parent = self
+    {self.children.append com}
+  }
+
+  {method public open {remove com:DrillDownComponent}:void
+    def index = {self.children.find com}
+    {if index > -1 then
+        {self.children.remove index}
+     else
+        {throw {ArrayBoundsException "Not found this component."}}
+    }
+  }
+}
+
+||
+|| DrillDownLeaf
+||
+{define-class public open DrillDownLeaf
+  {inherits DrillDownComponent}
+
+  {constructor public {default value:any}
+    {construct-super value}
+  }
+}
+
+|| 
+|| DrillDownListBox
+||
+{define-class public open DrillDownListBox
+  {inherits ListBox}
+
+  field constant private nodes-stack:{Array-of DrillDownNode}
+
+  || current node
+  {getter public open {current-node}:DrillDownNode
+    {return self.nodes-stack[self.nodes-stack.size - 1]}
+  }
+
+  {constructor public {default 
+                          root:DrillDownNode,
+                          ...
+                      }
+
+    {construct-super 
+        selection-policy = "single", || users cannot change
+        {splice ...},
+        {on e:ValueFinished do
+
+            {if super.selected-item-count != 1 then
+                {return}
+            }
+
+            || HACK! change the following search algorithm.
+            {for node in self.current-node.children do
+                {if node.value == {super.selected-items.read-one}.value then
+                    {if node isa DrillDownNode then
+                        {self.drill-down (node asa DrillDownNode)}
+                        || call DrillDownEvent
+                        {super.handle-event 
+                            {DrillDownEvent (node asa DrillDownNode)}}
+                     else
+                        || call DrillDownLeafEvent
+                        {super.handle-event 
+                            {DrillDownLeafEvent (node asa DrillDownLeaf)}}
+                    }
+                    {break}
+                }
+            }
+        }
+    }
+
+    set self.nodes-stack = {{Array-of DrillDownNode} root}
+    {self.redraw-items}
+  }
+
+  || drill down
+  {method public open {drill-down node:DrillDownNode}:void
+    {self.nodes-stack.push node}
+    {self.redraw-items}
+  }
+
+  || drill up
+  {method public open {drill-up}:bool
+    {if self.nodes-stack.size > 1 then
+        {self.nodes-stack.pop} || delete one node from stack
+        {self.redraw-items}
+        {return true}
+    }
+    {return false}
+  }
+
+  || drill up to the pointed node.
+  {method public open {drill-up-to-pointed-node node:DrillDownNode}:void
+
+    {while true do
+        {if self.nodes-stack.size < 1 then
+            {throw {ArrayBoundsException "Pointed node is nothing."}}
+        }
+        {if {self.nodes-stack.pop} == node then
+            {self.drill-down node}
+            {break}
+        }
+    }
+  }
+
+  || - - private - -
+  {method private {redraw-items}:void
+    {super.clear-items}
+    {for node in self.current-node.children do
+        {super.append node.value}
+    }
+  }
+}
+
+|| - - Event classes for DrillDown - -
+
+||
+|| DrillDownEvent
+||
+{define-class public open DrillDownEvent
+  {inherits Event}
+
+  field public-get private-set node:DrillDownNode
+
+  {constructor public {default node:DrillDownNode}
+    set self.node = node
+  }
+}
+
+||
+|| DrillDownLeafEvent
+||
+{define-class public open DrillDownLeafEvent
+  {inherits Event}
+
+  field public-get private-set leaf:DrillDownLeaf
+
+  {constructor public {default leaf:DrillDownLeaf}
+    set self.leaf = leaf
+  }
+}
+

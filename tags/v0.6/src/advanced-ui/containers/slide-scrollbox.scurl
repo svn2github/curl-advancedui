@@ -1,0 +1,197 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Masako Kidon
+|||
+
+{define-class public SlideScrollBox {inherits Frame}
+
+  field public  scroll-box        :#ScrollBox  
+
+  field public  left-bt           :#Frame 
+  field public  right-bt          :#Frame  
+  field public  up-bt             :#Frame  
+  field public  down-bt           :#Frame  
+  
+  field public  timer_plus        :#Timer  
+  field public  timer_minus       :#Timer   
+  field public  timer_plus_up     :#Timer   
+  field public  timer_minus_down  :#Timer  
+  
+  field public  contents          :#Graphic
+  
+  field private _orientation      :#String   
+  
+  {constructor public {default 
+                          contents     :Graphic, 
+                          orientation  :String = "horizontal", 
+                          ...
+                      }
+    {construct-super ...}
+    
+    set self.contents     = contents
+    set self._orientation = orientation
+    
+    {self.create-object}
+    {self.layout-object}
+  }
+
+  {method private {create-object}:void
+    set self.scroll-box = {ScrollBox width = {make-elastic}, self.contents}
+    let h-sb:Scrollbar ={self.scroll-box.get-hscroll}
+    let v-sb:Scrollbar ={self.scroll-box.get-vscroll}
+    set h-sb.height = 0pt
+    set v-sb.width  = 0pt
+    ||{h-sb.detach}
+    ||{v-sb.detach}
+    
+    set self.timer_plus  = {Timer
+                               interval = 0.1s, repeat = 0,
+                               {on TimerEvent do
+                                   {h-sb.set-scroll-value {h-sb.get-scroll-value} - h-sb.unitsize}
+                               }
+                           }
+    set self.timer_minus = {Timer
+                               interval = 0.1s, repeat = 0,
+                               {on TimerEvent do
+                                   {h-sb.set-scroll-value {h-sb.get-scroll-value} + h-sb.unitsize}
+                               }
+                           }
+    
+    set self.timer_plus_up    = {Timer
+                                    interval = 0.1s, repeat = 0,
+                                    {on TimerEvent do
+                                        {v-sb.set-scroll-value {v-sb.get-scroll-value} - v-sb.unitsize}
+                                    }
+                                }
+    set self.timer_minus_down = {Timer
+                                    interval = 0.1s, repeat = 0,
+                                    {on TimerEvent do
+                                        {v-sb.set-scroll-value {v-sb.get-scroll-value} + v-sb.unitsize}
+                                    }
+                                }
+    
+    set self.left-bt     = {Frame {image source = {url "../images/scroll-left-bt.gif"}},
+                               valign       = "center",
+                               halign       = "center",
+                               height       = {make-elastic}, 
+                               border-width = 1px,
+                               border-style = "flat",
+                               border-color = "transparent", 
+                               background   = "transparent",
+                               {on e:PointerEnter at f:Frame do
+                                   set f.border-color         = "gray"
+                                   set f.border-style         = "sunken"
+                                   set self.timer_plus.repeat = -1
+                               },
+                               {on e:PointerLeave at f:Frame do
+                                   set f.border-color         = "transparent"
+                                   set f.border-style         = "flat"
+                                   set self.timer_plus.repeat = 0
+                               }
+                           }
+    set self.right-bt    = {Frame {image source = {url "../images/scroll-right-bt.gif"}},
+                               valign       = "center",
+                               halign       = "center",
+                               height       = {make-elastic}, 
+                               border-width = 1px,
+                               border-style = "flat",
+                               border-color = "transparent", 
+                               background   = "transparent",
+                               {on e:PointerEnter at f:Frame do
+                                   set f.border-color          = "gray"
+                                   set f.border-style          = "sunken"
+                                   set self.timer_minus.repeat = -1
+                               },
+                               {on e:PointerLeave at f:Frame do
+                                   set f.border-color          = "transparent"
+                                   set f.border-style          = "flat"
+                                   set self.timer_minus.repeat = 0
+                               }   
+                           }
+    set self.up-bt       = {Frame {image source = {url "../images/scroll-up-bt.gif"}},
+                               width        = 9px,
+                               height       = 9px,
+                               valign       = "center",
+                               halign       = "center",
+                               height       = {make-elastic}, 
+                               border-width = 1px,
+                               border-style = "flat",
+                               border-color = "transparent", 
+                               background   = "transparent",
+                               {on e:PointerEnter at f:Frame do
+                                   set f.border-color            = "gray"
+                                   set f.border-style            = "sunken"
+                                   set self.timer_plus_up.repeat = -1
+                               },
+                               {on e:PointerLeave at f:Frame do
+                                   set f.border-color            = "transparent"
+                                   set f.border-style            = "flat"
+                                   set self.timer_plus_up.repeat = 0
+                               }
+                           }
+    set self.down-bt     = {Frame {image source = {url "../images/scroll-down-bt.gif"}},
+                               width        = 9px,
+                               height       = 9px,
+                               valign       = "center",
+                               halign       = "center",
+                               height       = {make-elastic}, 
+                               border-width = 1px,
+                               border-style = "flat",
+                               border-color = "transparent", 
+                               background   = "transparent",
+                               {on e:PointerEnter at f:Frame do
+                                   set f.border-color               = "gray"
+                                   set f.border-style               = "sunken"
+                                   set self.timer_minus_down.repeat = -1
+                               },
+                               {on e:PointerLeave at f:Frame do
+                                   set f.border-color               = "transparent"
+                                   set f.border-style               = "flat"
+                                   set self.timer_minus_down.repeat = 0
+                               }   
+                           }
+    
+  }
+  
+  {method private {layout-object}:void
+    {if self._orientation == "horizontal" then
+        {self.add {HBox self.left-bt, self.scroll-box, self.right-bt}}
+     else
+        {self.add 
+            {HBox valign = "top",
+                self.scroll-box,
+                {VBox height = {make-elastic},
+                    self.up-bt,
+                    {Fill height = 3px},
+                    self.down-bt
+                }
+            }
+        }
+    }
+  }
+
+  {method public {append g:Graphic, index:int = -1}:void
+    {self.contents.add g}
+  }
+  
+  {method public {clear}:void
+    {self.contents.clear}
+  }
+  
+}
+
+
+

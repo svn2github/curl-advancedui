@@ -1,0 +1,522 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Yohei Yoshida
+|||
+{curl 6.0 applet}
+
+{applet manifest = "manifest.mcurl"}
+
+{import * from CURL.GRAPHICS.SCENE}
+{import * from CURL.DATA-ACCESS.BASE}
+{api-version-switch
+ case "7.0+" do
+    || do nothing
+ case "6.0+" do
+    {import * from COM.CURL.GUI.STYLED-CONTROLS}
+    {install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
+}
+
+{import * from COM.CURLAP.ADVANCED-UI.CONTROLS}
+{import * from COM.CURLAP.ADVANCED-UI.UTILS}
+{import * from CURL.GUI.SHAPES}
+{import * from CURL.GUI.CHARTS}
+
+{install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
+
+{define-enum public Rank
+    First,
+    Second,
+    Third
+}
+
+|| RecordData
+{let records:RecordSet = 
+    {RecordSet
+        {RecordFields
+            {RecordField 
+                "id", caption = "User ID", domain = int, 
+                index-type = RecordFieldIndexType.unique
+            },
+            {RecordField "Last", domain = String},
+            {RecordField "First", domain = String},
+            {RecordField "City", domain = String},
+            {RecordField "State", domain = String},
+            {RecordField "Date", domain = {StandardDateDomain}},
+            {RecordField "Time", domain = Time},
+            {RecordField "Rank", domain = Rank},
+            {RecordField "Notified?", domain = bool}
+        },
+        {RecordData id = 1, Last = "Smith", First = "Gene", City = "Boston", State = "MA", Date = "01/25/2006", Time = "08:30", Rank = "First", Notified? = false},
+        {RecordData id = 2, Last = "Smith", First = "Fred", City = "Cambridge", State = "MA", Date = "01/25/2006", Time = "08:30", Rank = "First", Notified? = true},
+        {RecordData id = 3, Last = "Smith", First = "Mike", City = "Keene", State = "NH", Date = "01/25/2006", Time = "08:30", Rank = "First", Notified? = false},
+        {RecordData id = 4, Last = "Smith", First = "Ben", City = "New Haven", State = "CT", Date = "01/25/2006", Time = "08:30", Rank = "First", Notified? = false},
+        {RecordData id = 5, Last = "Abrams", First = "Ben", City = "Boston", State = "MA", Date = "01/25/2006", Time = "08:30", Rank = "Second", Notified? = true},
+        {RecordData id = 6, Last = "Jones", First = "Sam", City = "Storrs", State = "CT", Date = "01/25/2006", Time = "08:30", Rank = "Third", Notified? = false},
+        {RecordData id = 7, Last = "Stevens", First = "Nigel", City = "Hartford", State = "CT", Date = "01/25/2006", Time = "08:30", Rank = "First", Notified? = false},
+        {RecordData id = 8, Last = "Stevens", First = "Bert", City = "Cambridge", State = "MA", Date = "01/25/2006", Time = "08:30", Rank = "First", Notified? = true},
+        {RecordData id = 9, Last = "Linden", First = "Pat", City = "Hartford", State = "CT", Date = "01/25/2006", Time = "08:30", Rank = "First", Notified? = false},
+        {RecordData id = 10, Last = "Abrams", First = "Mat", City = "Boston", State = "MA", Date = "01/25/2006", Time = "08:30", Rank = "Third", Notified? = true},
+        {RecordData id = 11, Last = "Rogers", First = "John", City = "Cambridge", State = "MA", Date = "01/25/2006", Time = "08:30", Rank = "First", Notified? = false},
+        {RecordData id = 12, Last = "Abrams", First = "Dan", City = "Keene", State = "NH", Date = "01/25/2006", Time = "08:30", Rank = "Second", Notified? = false},
+        {RecordData id = 13, Last = "Abrams", First = "Chris", City = "Cambridge", State = "MA", Date = "01/25/2006", Time = "08:30", Rank = "First", Notified? = true},
+        {RecordData id = 14, Last = "Abrams", First = "Glenn", City = "Keene", State = "NH", Date = "01/25/2006", Time = "08:30", Rank = "First", Notified? = true},
+        {RecordData id = 15, Last = "Jones", First = "Doug", City = "New Haven", State = "CT", Date = "01/25/2006", Time = "08:30", Rank = "Third", Notified? = true},
+        {RecordData id = 16, Last = "Rogers", First = "Susan", City = "Concord", State = "NH", Date = "01/25/2006", Time = "08:30", Rank = "First", Notified? = false},
+        {RecordData id = 17, Last = "Smith", First = "Joan", City = "Concord", State = "MA", Date = "01/25/2006", Time = "08:30", Rank = "Second", Notified? = false},
+        {RecordData id = 18, Last = "Frankel", First = "Tom", City = "Keene", State = "NH", Date = "01/25/2006", Time = "08:30", Rank = "Third", Notified? = false},
+        {RecordData id = 19, Last = "Frankel", First = "Sarah", City = "Concord", State = "NH", Date = "01/25/2006", Time = "08:30", Rank = "First", Notified? = false},
+        {RecordData id = 20, Last = "Jones", First = "John", City = "Keene", State = "NH", Date = "01/25/2006", Time = "08:30", Rank = "First", Notified? = false},
+        {RecordData id = 21, Last = "Frankel", First = "Pam", City = "Storrs", State = "CT", Date = "01/25/2006", Time = "08:30", Rank = "Second", Notified? = false}
+    }
+}
+
+{let frame1:Frame =
+    {Frame
+        border-color = "gray",
+        border-width = 1pt,
+        width = 400pt,
+        height= 400pt,
+        {VBox
+            {big {bold No.1}},
+            {TextField
+                width = 100pt
+            },
+            {ComboBox
+                "aaa",
+                "bbb",
+                "ccc",
+                width = 100pt
+            },
+            {HBox
+                {CheckButton},
+                {CheckButton},
+                {CheckButton},
+                {CheckButton}
+            },
+            {RadioFrame
+                {HBox
+                    {RadioButton},
+                    {RadioButton},
+                    {RadioButton}
+                }
+            },
+            {RecordGrid
+                record-source = records,
+                width = {add-stretch},
+                height = {add-stretch}
+            }
+        }
+    }
+}
+
+{let frame2:Frame =
+    {Frame
+        {VBox
+            border-color = "gray",
+            border-width = 1pt,
+            width = 400pt,
+            height= 400pt,
+            {big {bold No.2}},
+            {TextField
+                width = 100pt
+            },
+            {TextField
+                width = 100pt
+            },
+            {TextField
+                width = 100pt
+            },
+            {TextField
+                width = 100pt
+            },
+            {TextField
+                width = 100pt
+            },
+            {TextField
+                width = 100pt
+            },
+            {ComboBox
+                "aaa",
+                "bbb",
+                "ccc",
+                width = 100pt
+            },
+            {HBox
+                {CheckButton},
+                {CheckButton},
+                {CheckButton},
+                {CheckButton}
+            },
+            {HBox
+                {CheckButton},
+                {CheckButton},
+                {CheckButton},
+                {CheckButton}
+            },
+            {RadioFrame
+                {HBox
+                    {RadioButton},
+                    {RadioButton},
+                    {RadioButton}
+                }
+            },
+            {GroupBox
+                label = "Group1",
+                {HBox
+                    {ComboBox
+                        "aaa",
+                        "bbb",
+                        "ccc",
+                        width = 100pt
+                    },
+                    {ComboBox
+                        "aaa",
+                        "bbb",
+                        "ccc",
+                        width = 100pt
+                    },
+                    {TextField}
+                }
+            },
+            {GroupBox
+                label = "Group2",
+                {HBox
+                    {ComboBox
+                        "aaa",
+                        "bbb",
+                        "ccc",
+                        width = 100pt
+                    },
+                    {ComboBox
+                        "aaa",
+                        "bbb",
+                        "ccc",
+                        width = 100pt
+                    },
+                    {TextField}
+                }
+            },
+            {GroupBox
+                label = "Group3",
+                {HBox
+                    {ComboBox
+                        "aaa",
+                        "bbb",
+                        "ccc",
+                        width = 100pt
+                    },
+                    {ComboBox
+                        "aaa",
+                        "bbb",
+                        "ccc",
+                        width = 100pt
+                    },
+                    {TextField}
+                }
+            },
+            {GroupBox
+                label = "Group4",
+                {HBox
+                    {ComboBox
+                        "aaa",
+                        "bbb",
+                        "ccc",
+                        width = 100pt
+                    },
+                    {ComboBox
+                        "aaa",
+                        "bbb",
+                        "ccc",
+                        width = 100pt
+                    },
+                    {TextField}
+                }
+            },
+            {GroupBox
+                label = "Group5",
+                {HBox
+                    {ComboBox
+                        "aaa",
+                        "bbb",
+                        "ccc",
+                        width = 100pt
+                    },
+                    {ComboBox
+                        "aaa",
+                        "bbb",
+                        "ccc",
+                        width = 100pt
+                    },
+                    {TextField}
+                }
+            }
+        }
+    }
+}
+
+{let frame3:Frame =
+    {Frame
+        {VBox
+            border-color = "gray",
+            border-width = 1pt,
+            width = 400pt,
+            height= 400pt,
+            {big {bold No.3}},
+            {HBox
+                {ComboBox
+                    "aaa",
+                    "bbb",
+                    "ccc",
+                    width = 100pt
+                },
+                {ComboBox
+                    "aaa",
+                    "bbb",
+                    "ccc",
+                    width = 100pt
+                }
+            },
+            {TextField
+                width = 100pt
+            },
+            {ComboBox
+                "aaa",
+                "bbb",
+                "ccc",
+                width = 100pt
+            },
+            {HBox
+                {CheckButton},
+                {CheckButton},
+                {CheckButton},
+                {CheckButton}
+            },
+            {TextArea
+                width = {add-stretch},
+                height = {add-stretch}
+            }
+        }
+    }
+}
+
+{let frame4:Frame =
+    {Frame
+        {VBox
+            border-color = "gray",
+            border-width = 1pt,
+            width = 400pt,
+            height= 400pt,
+            {big {bold No.4}},
+            {RichTextArea
+                width = {add-stretch},
+                height = {add-stretch}
+            }
+        }    
+    }
+}
+
+{let messages:RecordSet =
+    {RecordSet
+        {RecordFields
+            {RecordField "Recipient", domain = String},
+            {RecordField "Message", domain = String}
+        }
+    }
+}
+{define-class public open CodeCell
+  {inherits StandardRecordGridCell}
+  {constructor public {default}
+    {construct-super}
+    {self.add-internal {TextFlowBox}}
+  }
+  {method public open {refresh-data}:void
+    {super.refresh-data}
+    let (data:String, valid?:bool) = {self.get-formatted-data}
+    {self.child.graphic.clear}
+    {if valid? then
+        {self.child.graphic.add
+            {evaluate data}
+        }
+    }
+  }
+}
+{let rg:RecordGrid = 
+    {RecordGrid
+        record-source = messages,
+        automatic-columns? = false,
+        width = 400pt,
+        height = 350pt,
+        {RecordGridColumn "Recipient"},
+        {RecordGridColumn "Message", cell-spec = CodeCell}
+    }
+}
+{let rcp:String = ""}
+{let msgstr:String = ""}
+{let ta:TextArea = {TextArea
+                       height = 150pt
+                   }}
+{let rta:RichTextArea = {RichTextArea
+                            height = 150pt
+                        }}
+
+{let frame5:Frame =
+    {Frame
+        {VBox
+            border-color = "gray",
+            border-width = 1pt,
+            width = 400pt,
+            height= 400pt,
+            {big {bold No.5}},
+            {Table
+                {row-prototype "Message recipient: ", ta},
+                {row-prototype "Message text: ", rta}
+            },
+            {HBox
+                {CommandButton label = "Add Message",
+                    {on e:Action do
+                        set rcp = ta.value
+                        set msgstr = {rta.format-as-curl-source-fragment}
+                        {messages.append {RecordData Recipient = rcp, Message = msgstr}}
+                        {e.consume}
+                    }
+                },
+                {CommandButton label = "Show Messages",
+                    {on e:Action do
+                        {{Dialog {value rg}}.show}
+                        {e.consume}
+                    }
+                }
+            }
+        }
+    }
+}
+
+{let frame6:Frame =
+    {Frame
+        {VBox
+            border-color = "gray",
+            border-width = 1pt,
+            width = 400pt,
+            height= 400pt,
+            {big {bold No.6}},
+            {Table
+                border-width=1pt, border-color="black",
+                cell-border-width=1pt, cell-border-color="black",
+                {row-prototype font-weight="bold",
+                    {cell-prototype {center Stretch{br}Order},
+                        rowspan=2, halign="center", valign="center"},
+                    {cell-prototype "Curl Identifier Name", colspan=2}},
+                {row-prototype {skip 1}, "Meaning", "Examples of Use",
+                    halign="center", font-weight="bold"},
+                {row-prototype {cell-prototype -10,
+                                   rowspan=2, halign="center", valign="center"},
+                    {cell-prototype color="blue", colspan=2,
+                        {monospace unstretchable-stretch-order}}},
+                {row-prototype {skip 1},
+                    {text "Unstretchable" (absolutely rigid) elastic},
+                    {text Clearing an elastic to an unstretchable
+                        length of 0}},
+                {row-prototype {cell-prototype 0, rowspan=2, halign="center", valign="center"},
+                    {cell-prototype color="blue", colspan=2,
+                        {monospace rigid-threshold-stretch-order}}},
+                {row-prototype {skip 1},
+                    {text Rigid elastic, stretching is highly undesirable},
+                    {text Text, borders, and other objects that should
+                        have a fixed size}
+                },
+                {row-prototype {cell-prototype -10,
+                                   rowspan=2, halign="center", valign="center"},
+                    {cell-prototype color="blue", colspan=2,
+                        {monospace unstretchable-stretch-order}}},
+                {row-prototype {skip 1},
+                    {text "Unstretchable" (absolutely rigid) elastic},
+                    {text Clearing an elastic to an unstretchable
+                        length of 0}},
+                {row-prototype {cell-prototype 0, rowspan=2, halign="center", valign="center"},
+                    {cell-prototype color="blue", colspan=2,
+                        {monospace rigid-threshold-stretch-order}}},
+                {row-prototype {skip 1},
+                    {text Rigid elastic, stretching is highly undesirable},
+                    {text Text, borders, and other objects that should
+                        have a fixed size}
+                },
+                {row-prototype {cell-prototype -10,
+                                   rowspan=2, halign="center", valign="center"},
+                    {cell-prototype color="blue", colspan=2,
+                        {monospace unstretchable-stretch-order}}},
+                {row-prototype {skip 1},
+                    {text "Unstretchable" (absolutely rigid) elastic},
+                    {text Clearing an elastic to an unstretchable
+                        length of 0}},
+                {row-prototype {cell-prototype 0, rowspan=2, halign="center", valign="center"},
+                    {cell-prototype color="blue", colspan=2,
+                        {monospace rigid-threshold-stretch-order}}},
+                {row-prototype {skip 1},
+                    {text Rigid elastic, stretching is highly undesirable},
+                    {text Text, borders, and other objects that should
+                        have a fixed size}
+                },
+                {row-prototype {cell-prototype -10,
+                                   rowspan=2, halign="center", valign="center"},
+                    {cell-prototype color="blue", colspan=2,
+                        {monospace unstretchable-stretch-order}}},
+                {row-prototype {skip 1},
+                    {text "Unstretchable" (absolutely rigid) elastic},
+                    {text Clearing an elastic to an unstretchable
+                        length of 0}},
+                {row-prototype {cell-prototype 0, rowspan=2, halign="center", valign="center"},
+                    {cell-prototype color="blue", colspan=2,
+                        {monospace rigid-threshold-stretch-order}}},
+                {row-prototype {skip 1},
+                    {text Rigid elastic, stretching is highly undesirable},
+                    {text Text, borders, and other objects that should
+                        have a fixed size}
+                }
+            }
+        }
+    }
+}
+
+{let my-cube:CubeFrame =
+    {CubeFrame
+        {{Array-of Frame}
+            frame1,
+            frame2,
+            frame3,
+            frame4,
+            frame5,
+            frame6
+        },
+        button-placement = "top"
+    }
+}
+
+{View
+    {Dialog
+        background = "white",
+        margin = 10pt,
+        {spaced-vbox
+            {bold {big Cube Frame}},
+            font-size = 30pt,
+            font-family = "Curlz MT",
+            my-cube
+        }
+    },
+    visibility = "normal",
+    {on WindowClose do
+        {exit}
+    }
+}

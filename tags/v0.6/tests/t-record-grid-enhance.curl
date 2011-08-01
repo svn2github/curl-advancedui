@@ -1,0 +1,353 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Masahiro Hagiwara
+|||
+
+{curl 7.0 applet}
+{curl-file-attributes character-encoding = "shift-jis"}
+{applet manifest = "manifest.mcurl",
+    {compiler-directives careful? = true}
+}
+
+{import * from COM.CURLAP.ADVANCED-UI.CONTROLS}
+
+{let people:RecordSet =
+    {RecordSet
+        {RecordFields
+            {RecordField "First", domain = String},
+            {RecordField "Last", domain = String},
+            {RecordField "Age", domain = int},
+            {RecordField "Test1", domain = int},
+            {RecordField "Test2", domain = int},
+            {RecordField "Test3", domain = int},
+            {RecordField "Test4", domain = int},
+            {RecordField "TestX", domain = int},
+            {RecordField "TestY", domain = int},
+            {RecordField "TestY2", domain = int}
+        },
+        {RecordData First = "John", Last = "Smith", Age = 25},
+        {RecordData First = "John", Last = "Smith", Age = 26},
+        {RecordData First = "John", Last = "Smith", Age = 27},
+        {RecordData First = "John", Last = "Smith", Age = 28},
+        {RecordData First = "John", Last = "Smith", Age = 29},
+        {RecordData First = "John", Last = "Smith", Age = 30},
+        {RecordData First = "John", Last = "Smith", Age = 31},
+        {RecordData First = "Jane", Last = "Smith", Age = 32},
+        {RecordData First = "Jane", Last = "Jones", Age = 33}
+    }
+}
+
+{
+    let new-cols1:{Array-of BaseRecordGridColumn}
+    = {new {Array-of BaseRecordGridColumn},
+          {RecordGridColumn "Col1"}}
+}
+{
+    let new-cols2:{Array-of BaseRecordGridColumn}
+    = {new {Array-of BaseRecordGridColumn},
+          {RecordGridColumn "Col2"}}
+}
+{
+    let new-cols3:{Array-of BaseRecordGridColumn}
+    = {new {Array-of BaseRecordGridColumn},
+          {RecordGridColumn "Col3"}}
+}
+
+{
+    let new-cols4:{Array-of BaseRecordGridColumn}
+    = {new {Array-of BaseRecordGridColumn},
+          {RecordGridColumn "Col4"}}
+}
+
+{define-class public open CustomCell
+  {inherits StandardStringCell}
+  
+  {constructor public {default}
+    {construct-super}
+  }
+  {local-option public error?:bool = false
+    {self.become-active-from-traversal}
+    let change?:bool = true
+    {for i:double = 0 to 1.25 step 0.25 do
+        {if change? then
+            {after i * 2.0s do
+                set self.background = "red"
+            }
+            set change? = false
+         else
+            {after i * 2.0s do
+                {unset self.background}
+            }
+            set change? = true
+        }
+    }
+    {unset self.error?}
+  }
+  {method public {refresh-data}:void
+    {super.refresh-data}
+  }
+  {method public open {note-grid-focus-in}:void
+    {output "Cell Focus In"}
+    {super.note-grid-focus-in}
+  }
+  {method public open {note-grid-focus-out}:void
+    {output "Cell Focus Out"}
+    {super.note-grid-focus-out}
+  }
+}
+
+{def rg =
+    {RecordGridEnhance
+        record-source = people,
+        height = 6cm,width=32cm,
+        alternate-row-background = "#cceecc",
+        {RecordGridColumnGroup
+            "Name",
+            {RecordGridColumn
+                "First",
+                cell-spec = CustomCell
+            },
+            {RecordGridColumn
+                "Last",
+                cell-spec = CustomCell
+            }
+        },
+        {RecordGridColumn
+            "Age",
+            cell-spec = CustomCell
+        },
+        {RecordGridColumnGroup
+            "TestGroup",
+            {RecordGridColumn
+                "Test1",
+                cell-spec = CustomCell
+            },
+            {RecordGridColumnGroup
+                "SubGroup",
+                {RecordGridColumn
+                    "Test2",
+                    cell-spec = CustomCell
+                },
+                {RecordGridColumn
+                    "Test3",
+                    cell-spec = CustomCell
+                },
+                {RecordGridColumnGroup
+                    "SubGroup2",
+                    {RecordGridColumn
+                        "TestX",
+                        cell-spec = CustomCell
+                    },
+                    {RecordGridColumnGroup
+                        "SubGroup3",
+                        {RecordGridColumn
+                            "TestY",
+                            cell-spec = CustomCell
+                        },
+                        {RecordGridColumn
+                            "TestY2",
+                            cell-spec = CustomCell
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+{def original-bs-columns = {rg.base-columns.clone}}
+{def bs-deleted-tbl = {{HashTable-of BaseRecordGridColumn,BaseRecordGridColumn}}}
+{value
+    {VBox
+        spacing=5pt,
+        "RecordGridEnhance Test Applet",
+        rg,
+        {HBox
+            {CommandButton
+                width = {make-elastic}, label = "Delete 'Last' column",
+                {on Action do
+                    {rg.delete-column field-name="Last"}
+                }
+            }
+        },
+        {HBox
+            {CommandButton
+                width = {make-elastic}, label = "Hide 'Test3' column of two hierarchies",
+                {on Action do
+                    {rg.hide-column field-name = "Test3"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Show 'Test3' column of two hierarchies",
+                {on Action do
+                    {rg.show-column field-name = "Test3"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Add 'Test6' column of two hierarchies",
+                {on Action do
+                    {rg.add-column new-col = {RecordGridColumn "Test6", editable? = true},
+                        colg-name = "SubGroup", new-col-index = 2}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Delete 'Test6' column of two hierarchies",
+                {on Action do
+                    {rg.delete-column field-name = "Test6"}
+                }
+            }
+        },
+        {HBox
+            {CommandButton
+                width = {make-elastic}, label = "Add 'Test5' column",
+                {on Action do
+                    {rg.add-column new-col = {RecordGridColumn "Test5", editable? = true}}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Delete 'Test5' column",
+                {on Action do
+                    {rg.delete-column field-name =  "Test5"}
+                }
+            }
+        },
+        {HBox
+            {CommandButton
+                width = {make-elastic}, label = "Hide 'TestY' column of four hierarchies",
+                {on Action do
+                    {rg.hide-column field-name = "TestY"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Show 'Test' column of four hierarchies",
+                {on Action do
+                    {rg.show-column field-name = "TestY"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Add 'TestZ' column of four hierarchies",
+                {on Action do
+                    {rg.add-column new-col = {RecordGridColumn "TestZ", editable? = true},
+                        colg-name = "SubGroup3", new-col-index = 1}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Delete 'TestY' of four hierarchies",
+                {on Action do
+                    {rg.delete-column field-name = "TestY"}
+                }
+            }
+        },
+        {HBox
+            {CommandButton
+                width = {make-elastic}, label = "Add 'Group1' column group of one hierarchy",
+                {on Action do
+                    {rg.add-column-group
+                        new-colg = {RecordGridColumnGroup "Group1"},
+                        new-colg-index = 1,
+                        new-columns = new-cols1}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Delete 'Name' column group of one hierarchy",
+                {on Action do
+                    {rg.delete-column-group colg-name = "Name"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Hide 'Name' column group of one hierarchy",
+                {on Action do
+                    {rg.hide-column-group colg-name = "Name"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Show 'Name' column group of one hierarchy",
+                {on Action do
+                    {rg.show-column-group colg-name = "Name"}
+                }
+            }
+        },
+        {HBox
+            {CommandButton
+                width = {make-elastic}, label = "Add 'Group2' column group of two hierarchies",
+                {on Action do
+                    {rg.add-column-group
+                        new-colg = {RecordGridColumnGroup "Group2"},
+                        parent-colg-name = "Name",
+                        new-colg-index = 1,
+                        new-columns = new-cols2}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Delete 'Name' column group of two hierarchies",
+                {on Action do
+                    {rg.delete-column-group colg-name = "Name"}
+                }
+            }
+        },
+        {HBox
+            {CommandButton
+                width = {make-elastic}, label = "Add 'Group3' column group of three hierarchies",
+                {on Action do
+                    {rg.add-column-group
+                        new-colg = {RecordGridColumnGroup "Group3"},
+                        parent-colg-name = "SubGroup2",
+                        new-colg-index = 1,
+                        new-columns = new-cols3}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Delete 'SubGroup2' column group of three hierarchies",
+                {on Action do
+                    {rg.delete-column-group colg-name = "Group3"}
+                }
+            }
+        },
+        {HBox
+            {CommandButton
+                width = {make-elastic}, label = "Hide 'SubGroup3' column group of four hierarchies",
+                {on Action do
+                    {rg.hide-column-group colg-name = "SubGroup3"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Show 'SubGroup3' column group of four hierarchies",
+                {on Action do
+                    {rg.show-column-group colg-name = "SubGroup3"}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Add 'Group4' column group of four hierarchies",
+                {on Action do
+                    {rg.add-column-group
+                        new-colg = {RecordGridColumnGroup "Group4"},
+                        parent-colg-name = "SubGroup3",
+                        new-colg-index = 1,
+                        new-columns = new-cols4}
+                }
+            },
+            {CommandButton
+                width = {make-elastic}, label = "Delete 'SubGroup3' column group of four hierarchies",
+                {on Action do
+                    {rg.delete-column-group colg-name = "SubGroup3"}
+                }
+            }
+        }
+    }
+}
+
+
+

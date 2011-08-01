@@ -1,0 +1,180 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Yohei Yoshida
+|||
+
+{import * from CURL.LANGUAGE.MATH-CONSTANT}
+{import * from CURL.GUI.SHAPES}
+
+{define-class public AnimationCommandButton {inherits CommandButton}
+
+  {local-option public image-placement:LabelImagePlacement
+    {self.update-image-placement
+        self._static-label,
+        self._image-frame,
+        image-placement
+    }
+  }
+
+  field private _label-image:ImageShape
+  field private _static-label:#Label
+  field private _image-frame:Frame
+  field private _pointer-in?:bool = false
+  field private _timer:Timer
+
+  {constructor public {default
+                          static-label:#Label = "",
+                          label-image:Pixmap,
+                          image-placement:LabelImagePlacement = LabelImagePlacement.right,
+                          ...
+                      }
+    {construct-super
+        {splice ...}
+    }
+
+    set self._static-label = static-label
+    set self._label-image = {ImageShape
+                                fixed-transformation? = false,
+                                label-image
+                            }
+    def image-frame-width = {floor self._label-image.image.width * 1} * 1px
+    def image-frame-height = {floor self._label-image.image.height * 1} * 1px
+    set self._label-image.pixmap-scale = {Double2d 0.50, 0.50}
+    set self._image-frame = {Frame
+                                width = image-frame-width,
+                                height = image-frame-height,
+                                self._label-image
+                            }
+    
+    {self.update-image-placement
+        self._static-label,
+        self._image-frame,
+        image-placement
+    }
+
+    set self._timer =
+        {self.animate
+            repeat= 0,
+            frequency = 30fps,
+            {on TimerEvent do
+                {if self._pointer-in? or
+                    (self.ui-object asa BaseButtonUI).focus?
+                 then
+                    set self._label-image.pixmap-scale =
+                        {Double2d
+                            1.0 - 0.005 * self._timer.repeat * self._timer.repeat,
+                            1.0 - 0.005 * self._timer.repeat * self._timer.repeat
+                        }
+                 else
+                    set self._label-image.pixmap-scale =
+                        {Double2d
+                            0.5 + 0.005 * self._timer.repeat * self._timer.repeat,
+                            0.5 + 0.005 * self._timer.repeat * self._timer.repeat
+                        }
+                }
+                {if self._timer.repeat == 0 then
+                    {if self._pointer-in? or
+                        (self.ui-object asa BaseButtonUI).focus?
+                     then
+                        set self._label-image.pixmap-scale = {Double2d 1.0, 1.0}
+                     else
+                        set self._label-image.pixmap-scale = {Double2d 0.5, 0.5}
+                    }
+                }
+            }
+        }        
+    
+    {self.add-event-handler
+        {on PointerEnter do
+            {if not (self.ui-object asa BaseButtonUI).focus? then
+                set self._timer.repeat = 10 - self._timer.repeat
+            }
+            set self._pointer-in? = true
+        }
+    }
+    {self.add-event-handler
+        {on PointerLeave do
+            {if not (self.ui-object asa BaseButtonUI).focus? then
+                set self._timer.repeat = 10 - self._timer.repeat
+            }
+            set self._pointer-in? = false
+        }
+    }
+    {self.add-event-handler
+        {on FocusIn do
+            {if not self._pointer-in? then
+                set self._timer.repeat = 10 - self._timer.repeat
+            }
+        }
+    }
+    {self.add-event-handler
+        {on FocusOut do
+            {if not self._pointer-in? then
+                set self._timer.repeat = 10 - self._timer.repeat
+            }
+        }
+    }
+  }
+
+  {method private {update-image-placement
+                      static-label:#Label,
+                      image-frame:Frame,
+                      image-placement:LabelImagePlacement
+                  }:void
+    {if-non-null static-label = self._static-label then
+        {unset static-label.valign}
+        {unset static-label.halign}
+    }
+    {switch self.image-placement
+     case LabelImagePlacement.right do
+        set self.label =
+            {HBox
+                valign = "center",
+                static-label,
+                image-frame
+            }
+     case LabelImagePlacement.left do
+        set self.label =
+            {HBox
+                valign = "center",
+                image-frame,
+                static-label
+            }
+     case LabelImagePlacement.top do
+        set self.label =
+            {VBox
+                halign = "center",
+                image-frame,
+                static-label
+            }
+     case LabelImagePlacement.bottom do
+        set self.label =
+            {VBox
+                halign = "center",
+                static-label,
+                image-frame
+            }
+     case LabelImagePlacement.overlap do
+        set self.label =
+            {OverlayBox
+                image-frame,
+                static-label
+            }
+        set self._static-label.valign = "center"
+        set self._static-label.halign = "center"
+    }
+  }
+}

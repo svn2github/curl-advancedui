@@ -1,0 +1,156 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+||
+|| ValidationTextFieldUI
+||
+{define-class public open ValidationTextFieldUI
+  {inherits Frame, ControlUI}
+
+  field package text-field:CoreTextField
+  field private image-frame:Frame
+  field private current-status?:bool
+  field constant private ok-image:Background
+  field constant private ng-image:Background
+  
+  {constructor public {default
+                          control:#ValidationTextField = null,
+                          ok-image:#Url = null,
+                          ng-image:#Url = null,
+                          ...
+                      }
+    || not support since 7.0
+||--    {construct-super.ControlUI control = control}
+    {construct-super.ControlUI}
+    {if-non-null c = control then
+        set self.control = c
+    }
+    {construct-super.Frame}
+    
+    set self.vstretch? = true
+    set self.hstretch? = true
+
+    set self.text-field = 
+        {CoreTextField
+            {splice ...},
+            ||{validate-with 
+            ||    {NumericValidator}, 
+            ||    required? = true,
+            ||    dialog-on-finished? = false
+            ||},
+            {on e:ValidationComplete at v:CoreTextField do
+                {self.change-image-frame (v.valid? and e.current?)}
+            }
+        }
+    
+    def image-size = 
+        {if-non-null height = self.text-field.height then height else 0.5cm}
+
+    set self.ok-image = 
+        {Background {if-non-null oi = ok-image
+                     then oi 
+                     else {url "../images/button-ok.png"}
+                    }}
+
+    set self.ng-image = 
+        {Background {if-non-null ni = ng-image
+                     then ni
+                     else {url "../images/button-ng.png"}
+                    }}
+                        
+    set self.image-frame = 
+        {Frame 
+            width = image-size, 
+            height = image-size, 
+            background = self.ng-image
+        }
+    
+    {self.add 
+        {HBox valign = "top", self.text-field, self.image-frame}, 
+        replace? = true}
+  }
+
+
+  {method private {change-image-frame ok?:bool}:void
+
+    {if self.current-status? == ok? then
+        {return}
+    }
+
+    set self.image-frame.background = 
+        {if ok? then self.ok-image else self.ng-image}
+    set self.current-status? = ok?
+  }
+
+  || override
+  {getter public open {focus-object}:Visual
+    {return self}
+  }
+}
+
+||
+|| ValidationTextField
+||
+{define-class public open ValidationTextField
+  {inherits {MultiUIValueControlFrame-of #String}}
+
+  {constructor public {default 
+                          ui-object:#ValidationTextFieldUI = null, 
+                          ok-image:#Url = null,
+                          ng-image:#Url = null,
+                          ...
+                      }
+
+    ||{construct-super ui-object = ui-object, ...}
+    {construct-super 
+        ui-object =
+            {if-non-null uo = ui-object then
+                uo
+             else
+                {ValidationTextFieldUI 
+                    ok-image = ok-image, ng-image = ng-image, {splice ...}}
+            }
+    }
+  }
+
+  || 
+  {getter public open {text-field}:CoreTextField
+    {return (self.ui-object asa ValidationTextFieldUI).text-field}
+  }
+
+  || - - override - -
+  {getter public open {value}:#String
+
+    {return self.text-field.value}
+  }
+  {setter public open {value value:#String}:void
+
+    {if-non-null v = value then
+        set self.text-field.value = v
+    }
+  }
+
+  {method protected open {create-default-ui-object}:ControlUI
+    {return {ValidationTextFieldUI}}
+  }
+
+  {method public open {unset-value}:void
+    set self.text-field.value = ""
+  }
+}
+

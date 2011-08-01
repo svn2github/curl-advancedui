@@ -1,0 +1,79 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Naoto Miyazaki
+|||
+
+{define-class public DomainTextDisplay {inherits TextDisplay,DomainControlInterface}
+  
+  
+  
+  {constructor public {default
+                          domain    :Domain = {Domain.from-type String},
+                          value     :any = null,
+                          ui-object :#TextDisplayUI = null,
+                          ...
+                      }
+    
+    {construct-super.DomainControlInterface
+        domain,
+        value
+    }
+    
+    {construct-super.TextDisplay
+        value      = {self.domain.format value},
+        ui-object  = ui-object,
+        {splice ...}
+    }
+    
+    {if domain.type isa NumericType
+     then
+        {self.init-as-numeric-type}
+    }
+    
+  }
+  
+  {method protected {init-as-numeric-type}:void
+    
+    set self.halign = "right"
+    
+  }
+  
+  {setter public {native-value value:any}:void
+    
+    set super.native-value = value
+    set super.value = {self.domain.format value}
+    
+  }
+  
+  {setter public {value value:String}:void
+    
+    let new-value:any = null
+    
+    {try
+        
+        set new-value =
+            {self.domain.parse value}
+        
+     catch e:ValidationException do
+        set new-value = self.native-value
+    }
+    
+    set self.native-value = new-value
+    
+  }
+  
+  
+}
