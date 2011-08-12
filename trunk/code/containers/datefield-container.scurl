@@ -16,7 +16,7 @@
 ||| @authors Hitoshi Okada
 |||
 
-{import * from COM.CURLAP.ADVANCED-UI.CONTROLS}
+{import * from COM.CURL.ADVANCED-UI.CONTROLS}
 
 
 ||

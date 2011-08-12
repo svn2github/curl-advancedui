@@ -16,8 +16,8 @@
 ||| @author Hitoshi Okada
 |||
 
-{curl 6.0, 7.0 package}
-{package COM.CURLAP.ADVANCED-UI.EVENTS,
+{curl 6.0, 7.0, 8.0 package}
+{package COM.CURL.ADVANCED-UI.EVENTS,
     {compiler-directives careful? = true}
 }
 

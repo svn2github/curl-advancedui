@@ -15,23 +15,32 @@
 |||
 ||| @author Hitoshi Okada
 |||
-{curl 6.0, 7.0 manifest}
-{manifest COM.CURLAP.TEST}
+{curl 6.0, 7.0, 8.0 manifest}
+{manifest COM.CURL.TEST}
 
-{delegate-to COM.CURLAP.ADVANCED-UI,
-    location = "../src/advanced-ui/manifest.mcurl"}
+||--{delegate-to COM.CURL.ADVANCED-UI,
+||--    location = "../src/advanced-ui/manifest.mcurl"}
+{delegate-to COM.CURL.ADVANCED-UI,
+    location = "../code/manifest.mcurl"}
+
+{delegate-to COM.CURL.CDU,
+||--    || use with adjacent CDU repository
+||--    location = "../../../CDU/trunk/code/manifest.mcurl"
+    || use with svn:externals
+    location = "../lib/CDU/manifest.mcurl"
+}
 
 {delegate-to COM.CURL.GUI.STYLED,
     location = "gui-styled/manifest.mcurl",
     version = "6.0"
 }
 
-{component file t-guide-prompt.curl,
-    location = "t-guide-prompt.curl"
+{component file t-guide-prompt.dcurl,
+    location = "t-guide-prompt.dcurl"
 }
 
-{component file t-event-manager.curl,
-    location = "t-event-manager.curl"
+{component file t-event-manager.dcurl,
+    location = "t-event-manager.dcurl"
 }
 
 {component file t-mouse-gesture.dcurl,
@@ -42,36 +51,43 @@
     location = "t-ui-motion.curl"
 }
 
-{component file t-thumbnail.curl,
-    location = "t-thumbnail.curl"
+{component file t-thumbnail.dcurl,
+    location = "t-thumbnail.dcurl"
 }
 
-{component file t-core-datefield.curl,
-    location = "t-core-datefield.curl"
+{component file t-core-datefiled.dcurl,
+    location = "t-core-datefiled.dcurl"
 }
 
-{component file t-core-command-button.curl,
-    location = "t-core-command-button.curl"
+{component file t-core-command-button.dcurl,
+    location = "t-core-command-button.dcurl"
 }
 
 {component file t-domain-ui.curl,
     location = "t-domain-ui.curl"
 }
 
-{component file t-validation-textfield.curl,
-    location = "t-validation-textfield.curl"
+{component file t-validation-textfield.dcurl,
+    location = "t-validation-textfield.dcurl"
 }
 
 {component file t-auto-complete.curl,
     location = "t-auto-complete.curl"
 }
 
-{component file t-calculator.curl,
-    location = "t-calculator.curl"
+{component file t-calculator.dcurl,
+    location = "t-calculator.dcurl"
 }
 
-{component file t-animation.curl,
-    location = "t-animation.curl"
+||--{component file t-animation.curl,
+||--    location = "t-animation.curl"
+||--}
+{component file t-animation-button.dcurl,
+    location = "t-animation-button.dcurl"
+}
+
+{component file t-animation-view.dcurl,
+    location = "t-animation-view.dcurl"
 }
 
 {component file t-waiting.curl,
@@ -80,6 +96,10 @@
 
 {component file t-slidescrollbox.curl,
     location = "t-slidescrollbox.curl"
+}
+
+{component file t-sweep-window.dcurl,
+    location = "t-sweep-window.dcurl"
 }
 
 {component file t-animation-button.dcurl,
@@ -104,6 +124,10 @@
 
 {component file t-carousel.curl,
     location = "t-carousel.curl"
+}
+
+{component file t-carousel2.curl,
+    location = "t-carousel2.curl"
 }
 
 {component file t-choose-file.curl,
@@ -151,9 +175,25 @@
 }
 
 {component file t-image-popup-view.curl,
-    location = "t-image-popup-view.dcurl"
+    location = "t-image-popup-view.curl"
 }
 
 {component file t-record-grid-enhance.curl,
     location = "t-record-grid-enhance.curl"
+}
+
+{component directory images,
+    location = "images"
+}
+
+{component directory gui-styled,
+    location = "gui-styled"
+}
+
+{component file classic-project.cprj,
+    location = "classic-project.cprj"
+}
+
+{component file project.cprj,
+    location = "project.cprj"
 }

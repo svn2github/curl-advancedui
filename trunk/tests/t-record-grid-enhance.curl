@@ -16,13 +16,13 @@
 ||| @authors Masahiro Hagiwara
 |||
 
-{curl 7.0 applet}
+{curl 7.0, 8.0 applet}
 {curl-file-attributes character-encoding = "shift-jis"}
 {applet manifest = "manifest.mcurl",
     {compiler-directives careful? = true}
 }
 
-{import * from COM.CURLAP.ADVANCED-UI.CONTROLS}
+{import * from COM.CURL.ADVANCED-UI.CONTROLS}
 
 {let people:RecordSet =
     {RecordSet

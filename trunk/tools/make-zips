@@ -1,0 +1,70 @@
+#! /bin/bash
+TODAY=`date +%m%d`
+SRCROOT="../build/DEPLOYED"
+pushd $SRCROOT/deploy
+DDIRS=( `ls` )
+popd
+DDIR=${DDIRS[${#DDIRS[@]} - 1]}
+DVER=`expr $DDIR : '.*\(V[0-9.]*\)'`
+# echo $DVER "(" $DDIR ")"
+DIST="advanced-ui-$DVER"
+DISTDIR="$SRCROOT/$DIST"
+echo "Packing $DDIR from $SRCROOT into $DIST"
+DISTSRC="$DISTDIR/$DDIR-src"
+DISTDOC="$DISTDIR/$DDIR-doc"
+
+PCURLDIR=$SRCROOT/deploy/$DDIR/
+BGTDIR=$SRCROOT/deploy/$DDIR/BackgroundTask
+if ! test -f "$BGTDIR/BackgroundTaskRemoteInterface.scurl" ; then
+    echo "?? $BGTDIR/BackgroundTaskRemoteInterface.scurl missing - check the project file."
+fi
+if ! test -f "$BGTDIR/BackgroundTaskRemoteInterfacePackage.scurl" ; then
+    echo "?? $BGTDIR/BackgroundTaskRemoteInterfacePackage.scurl missing - check the project file."
+fi
+
+FLAGS="-av"
+if test -d "$DISTDIR" ; then
+    echo "-- $DISTDIR already exists: Updating only"
+    FLAGS="-uav"
+else
+    mkdir -p "$DISTDIR"
+    mkdir -p "$DISTSRC"
+    mkdir -p "$DISTDOC"
+fi
+rsync "$FLAGS" "$SRCROOT/src/" "$DISTSRC/"
+rsync "$FLAGS" "$SRCROOT/deploy/$DDIR" "$DISTDIR/"
+rsync "$FLAGS" "$SRCROOT/docs-install/$DDIR/" "$DISTDOC/"
+
+HOST_LOCALE=ja
+SOURCE_LOCALE=en
+DEST_LOCALE=ja
+
+if [ "$HOST_LOCALE" ]; then
+    if  [ ! -d "$DISTDOC"/docs/$SOURCE_LOCALE ] ; then \
+      mkdir -p "$DISTDOC"/docs/$SOURCE_LOCALE
+    fi
+    if  [ -d "$DISTDOC"/docs/$HOST_LOCALE/api-ref ] ; then \
+      # cd "$DISTDOC"/docs/$SOURCE_LOCALE && mv api-ref not-api-ref
+      (cd "$DISTDOC"/docs/$HOST_LOCALE; tar cpf - api-ref) | \
+      (cd "$DISTDOC"/docs/$SOURCE_LOCALE; tar xvpf -)
+      # cd "$DISTDOC"/docs/$SOURCE_LOCALE && ln -s ../$HOST_LOCALE/api-ref .
+    fi
+fi
+
+if test -d "$DISTDOC"/docs/$DEST_LOCALE ; then
+    rm -rf "$DISTDOC"/docs/$DEST_LOCALE
+fi
+if test -d "$DISTSRC"/code/docs/$DEST_LOCALE ; then
+    rm -rf "$DISTSRC"/code/docs/$DEST_LOCALE
+fi
+
+
+ls -l "$DISTDIR"
+cd "$SRCROOT"
+DSTZIP="$DIST.zip"
+if test -f "$DSTZIP" ; then
+    mv "$DSTZIP" "old-$DSTZIP"
+fi
+zip -r "$DSTZIP" "$DIST"
+ls -l "$DIST"
+ls -lrt *.zip

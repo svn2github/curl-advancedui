@@ -16,14 +16,14 @@
 ||| @author Minoru Asegawa
 |||
 
-{curl 6.0, 7.0 applet}
+{curl 6.0, 7.0, 8.0 applet}
 {applet manifest = "manifest.mcurl",
     {compiler-directives careful? = true}
 }
 
 {import * from COM.CURLAP.ADVANCED-UI.CONTAINERS}
 {api-version-switch
- case "7.0+" do
+ case "7.0+", "8.0+" do
     || do nothing
  case "6.0+" do
     {import * from COM.CURL.GUI.STYLED-CONTROLS}

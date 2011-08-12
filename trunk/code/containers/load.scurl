@@ -16,13 +16,13 @@
 ||| @author Tian Deng
 |||
 
-{curl 6.0, 7.0 package}
-{package COM.CURLAP.ADVANCED-UI.CONTAINERS,
+{curl 6.0, 7.0, 8.0 package}
+{package COM.CURL.ADVANCED-UI.CONTAINERS,
     {compiler-directives careful? = true}
 }
 
 {import * from CURL.GUI.STANDARD}
-{import public * from COM.CURLAP.ADVANCED-UI.EVENTS}
+{import public * from COM.CURL.ADVANCED-UI.EVENTS}
 
 {include 
     "gesture-frame.scurl",

@@ -17,7 +17,7 @@
 |||
 
 {import * from CURL.GRAPHICS.SCENE}
-{import * from COM.CURLAP.ADVANCED-UI.UTILS}
+{import * from COM.CURL.ADVANCED-UI.UTILS}
 {import * from CURL.LANGUAGE.COMPILER}
 
 {define-class public CubeFrame {inherits Frame}

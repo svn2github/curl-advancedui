@@ -16,12 +16,12 @@
 ||| @author Hideki Omatsu
 |||
 
-{curl 6.0, 7.0 applet}
+{curl 6.0, 7.0, 8.0 applet}
 {applet manifest = "manifest.mcurl",
     {compiler-directives careful? = true}
 }
 
-{import * from COM.CURLAP.ADVANCED-UI.CONTAINERS}
+{import * from COM.CURL.ADVANCED-UI.CONTAINERS}
 
 {let img1:ImagePopupButton = {ImagePopupButton
                                  width = 100pt,

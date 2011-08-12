@@ -1,0 +1,22 @@
+{curl 8.0 manifest}
+{curl-file-attributes character-encoding = "shift-jis"}
+{manifest COM.CURL.ADVANCED-UI.TOOLS}
+
+||--{delegate-to COM.CURL.CDU,
+||--||--    || use with adjacent CDU repository
+||--||--    location = "../../../CDU/trunk/code/manifest.mcurl"
+||--    || use with svn:externals
+||--    location = "../lib/CDU/manifest.mcurl"
+||--}
+
+{component file deploy.curl,
+    location = "deploy.curl"
+}
+
+{component file deploy-batch.curl,
+    location = "deploy-batch.curl"
+}
+
+{component file deploy-specs.scurl,
+    location = "deploy-specs.scurl"
+}

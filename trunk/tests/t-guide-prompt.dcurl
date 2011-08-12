@@ -16,13 +16,13 @@
 ||| @author Hitoshi Okada
 |||
 
-{curl 6.0, 7.0 applet}
+{curl 6.0, 7.0, 8.0 applet}
 {curl-file-attributes character-encoding = "utf8"}
 {applet manifest = "manifest.mcurl"}
 
-{import * from COM.CURLAP.ADVANCED-UI.CONTROLS}
+{import * from COM.CURL.ADVANCED-UI.CONTROLS}
 {api-version-switch
- case "7.0+" do
+ case "7.0+", "8.0+" do
     || do nothing
  case "6.0+" do
     {import * from COM.CURL.GUI.STYLED-CONTROLS}
@@ -35,18 +35,18 @@
         |#
         {text Normal TextField},
         {TextField},
-        {TextField prompt = "��͂��ĂˁB"},
+        {TextField prompt = "???????B"},
         #|
         {text GuidePrompt TextField},
 ||        {CoreTextField},
         {CoreTextField 
             height = 1cm, font-size = 16pt,
-            prompt = "��͂��ĂˁB"},
+            prompt = "???????B"},
 ||        {CoreTextField prompt-background = "pink"},
 ||        {CoreTextField control-content-background = "pink"},
         {CoreTextField
             height = 1cm, font-size = 16pt,
-            prompt = "��͂��ĂˁB",
+            prompt = "???????B",
             prompt-color = "red",
             prompt-background = "pink",
             control-content-background = "yellow",
@@ -55,15 +55,15 @@
 
         {text Normal DateField},
         {DateField},
-        {DateField prompt = "��͂��ĂˁB"},
+        {DateField prompt = "???????B"},
 
         {text GuidePrompt DateField},
         {CoreDateField},
-        {CoreDateField prompt = "��͂��ĂˁB"},
+        {CoreDateField prompt = "???????B"},
         {CoreDateField prompt-background = "pink"},
         {CoreDateField control-content-background = "pink"},
         {CoreDateField
-            prompt = "��͂��ĂˁB",
+            prompt = "???????B",
             prompt-color = "red",
             prompt-background = "pink",
             control-content-background = "yellow",
@@ -72,11 +72,11 @@
 
         {text Normal TextArea},
         {TextArea},
-        {TextArea prompt = "��͂��ĂˁB"},
+        {TextArea prompt = "???????B"},
 
         {text GuidePrompt TextArea},
         {CoreTextArea},
-        {CoreTextArea prompt = "��͂��ĂˁB"},
+        {CoreTextArea prompt = "???????B"},
         {CoreTextArea prompt-background = "pink"},
         {CoreTextArea control-content-background = "pink"},
         {CoreTextArea

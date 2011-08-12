@@ -1,4 +1,4 @@
-{curl 6.0 manifest}
+{curl 6.0, 7.0, 8.0 manifest}
 {curl-file-attributes character-encoding = "windows-latin-1"}
 {manifest COM.CURL.GUI.STYLED,
     version = "6.0"

@@ -1,0 +1,134 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+{curl 7.0, 8.0 applet}
+{applet
+    {compiler-directives careful? = true}}
+
+|| derived from "curl://install/ide/translate/bin/extract-messages.xcurl"
+{include "extract-messages.scurl"}
+
+{define-proc {manifest-package-locs manifest-loc:Url}:UrlArray
+    def m = {import-manifest manifest-loc}
+    def locs = {UrlArray}
+    {for c in m do
+        {if c.component-type == "package" then
+            def name = {non-null c.name}
+            {locs.append c.location-hints[0]}}}
+    {return locs}
+}
+{def TranslationSourceInfo =
+    {HashTable-of TranslationEntry, CurlSource}
+}
+{define-proc {process-files 
+                 locs:UrlArray
+             }:(TranslationEntrySet, TranslationSourceInfo)
+    def entries = {TranslationEntrySet}
+    def where = {TranslationSourceInfo}
+    {for loc in locs do
+        {extract-translation-entries entries, loc, where}}
+    {return entries, where}
+}
+{define-class public TranslationsRecordSet {inherits DefaultRecordView}
+  field public-get constant base-url:Url
+  {constructor public {default
+                          entries:TranslationEntrySet,
+                          where:TranslationSourceInfo,
+                          base-url:Url = {get-working-directory-url}}
+    set self.base-url = base-url
+    def rs =
+        {RecordSet
+            {RecordFields
+                {RecordField "original", domain = String},
+                {RecordField "key", domain = String},
+                {RecordField "comment", domain = String},
+                {RecordField "translation", domain = String, nullable? = true},
+                {RecordField "file", domain = String, nullable? = true},
+                {RecordField "start", domain = int},
+                {RecordField "end", domain = int}}}
+    {construct-super rs, sort = "original"}
+    {self.load-entries entries, where}
+  }
+  {method {load-entries
+              entries:TranslationEntrySet,
+              where:TranslationSourceInfo
+          }:void
+    def rs = self.source
+    def base-url = self.base-url
+    {with
+        rs.batch-events? = true
+     do
+        {for entry in entries do
+            def info:SourceLocation = where[entry]
+            {rs.append
+                {RecordData
+                    original = entry.original,
+                    translation = entry.translation,
+                    key = entry.key,
+                    comment = entry.comment,
+                    file =
+                        {if-non-null loc = info.file-info.url then
+                            {loc.name-relative-to-url base-url}
+                         else null},
+                    start = info.start-location,
+                    end = info.end-location
+                }}}
+        {rs.commit}}
+  }
+  {method {to-entries}:TranslationEntrySet
+    def entries = {TranslationEntrySet}
+    {for r in self do
+        {entries.insert
+            {TranslationEntry
+                r["key"] asa String,
+                r["original"] asa String,
+                r["comment"] asa String,
+                translation = r["translation"] asa #String}}}
+    {return entries}
+  }
+}
+
+|| NOTE: different formatting
+|| - attributes
+|| -- IDE: " delimited, same line
+|| -- XDM: ' delimited, indented subsequent line
+|| - indentation
+|| -- IDE: 0
+|| -- XDM: 1
+|| - IDE includes comments
+
+{value
+    def mloc = {url "../../../../WSDK/trunk/code/manifest.mcurl"}
+||--    def mloc = {url "../../../../CDK/trunk/CDK-SQL/code/manifest.mcurl"}
+||--    def mloc = {url "../../../../CDK/trunk/CDK-DS/code/manifest.mcurl"}
+||--    def mloc = {url "../code/manifest.mcurl"}
+||--    def mloc = {url "../../../../CDK/trunk/UTIL/code/manifest.mcurl"}
+    
+    def locs = {manifest-package-locs mloc}
+    def (entries, where) = {process-files locs}
+    def trs =
+        {TranslationsRecordSet entries, where,
+            base-url = mloc.parent}    
+    {with-open-streams
+        out = {write-open {url "messages.xml"}}  
+     do
+        def entries = {trs.to-entries}
+        {entries.write out}
+    }
+    {RecordGrid record-source = trs,
+        height = 8in,
+        width = 10in}
+}

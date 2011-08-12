@@ -76,7 +76,7 @@
 
 ||
 || DisclosureCommandButton
-||   TODO: move to COM.CURLAP.ADVANCED-UI.CONTROLS package?
+||   TODO: move to COM.CURL.ADVANCED-UI.CONTROLS package?
 {define-class public open DisclosureCommandButton
   {inherits CommandButton}
 

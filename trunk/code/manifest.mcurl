@@ -16,26 +16,40 @@
 ||| @authors Hitoshi Okada
 |||
 
-{curl 6.0, 7.0 manifest}
-{manifest COM.CURLAP.ADVANCED-UI}
+{curl 6.0, 7.0, 8.0 manifest}
+{manifest COM.CURL.ADVANCED-UI,
+    version = "0.7"}
 
-{component package COM.CURLAP.ADVANCED-UI.CONTROLS,
+{component package COM.CURL.ADVANCED-UI.CONTROLS,
     location = "controls/load.scurl"
 }
 
-{component package COM.CURLAP.ADVANCED-UI.CONTAINERS,
+{component package COM.CURL.ADVANCED-UI.CONTAINERS,
     location = "containers/load.scurl"
 }
 
-{component package COM.CURLAP.ADVANCED-UI.EVENTS,
+{component package COM.CURL.ADVANCED-UI.EVENTS,
     location = "events/load.scurl"
 }
 
-{component package COM.CURLAP.ADVANCED-UI.UTILS,
+{component package COM.CURL.ADVANCED-UI.UTILS,
     location = "utils/load.scurl"
 }
 
-{component package COM.CURLAP.ADVANCED-UI.TOOLS,
+{component package COM.CURL.ADVANCED-UI.TOOLS,
     location = "tools/load.scurl"
 }
 
+|| Images
+|| --------------------
+{component directory images,
+    location = "images"
+}
+
+{component file classic-project.cprj,
+    location = "classic-project.cprj"
+}
+
+{component file project.cprj,
+    location = "project.cprj"
+}

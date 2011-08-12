@@ -1,0 +1,123 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+{curl 6.0, 7.0, 8.0 applet}
+
+{applet manifest = "manifest.mcurl", locale = "en"}
+
+{include "../utils/guide-header.scurl"}
+
+{chapter
+    index= {HeadingIndex primary-key="CDU Overview"},
+    CDU Overview
+}
+{paragraph
+    The Curl Data Utilities (CDU) library provides functionality 
+    supporting the application development process.
+    {itemize
+        {item Unit Testing}
+        {item Deployment}
+||--        {item Localization}
+    }
+    
+    We also include several {link href = {url "cdu-examples.curl"}, implementation examples}
+    
+}
+
+{heading level=2,
+    What's New in CDU 1.0
+}
+
+{paragraph
+    This is the first CDU Release.
+}
+
+{heading level=2,
+    Unit Testing
+}
+
+{paragraph
+    The {docref COM.CURL.CDU.CURL-UNIT} package provides
+    a framework for defining and running unit tests.
+    
+    {docref TestSuite}s are collections of {docref TestCase}s and other {ctext TestSuite}s.
+
+    Each {ctext TestSuite} has a name (which should be unique within its suite),
+    and must specify (using its {docref-abbr TestCase.run} method)
+    the test operation.  The outcome of the test is signaled using a
+    {docref TestCondition}.
+
+    For some tests, it may be useful to provide some context for the operation
+    (e.g. a test fixture).  The {docref-abbr TestCase.set-up}
+    and {docref-abbr TestCase.tear-dowm} methods may be overridden for that purpose.
+
+    Test suites are executed and results broadcasted by a {docref TestController},
+    which communicates progress by firing {docref TestMessage} events
+    at a {docref TestTarget}.  Standard targets are provided that
+    log results to the console, or store them in a {docref RecordSet}.
+
+    Use {docref TestUI} as a graphical driver for a test suite.
+
+    The simplest way to define tests is with the {docref test-case} macro.
+    Of course, it is also possible to subclass {docref TestCase}.
+
+    Test suites can be specified
+    declaratively (with the {docref-abbr TestSuite.default} constructor,
+    or procedurally (with the {docref-abbr TestSuite.add} method),
+    or by evaluation (with the {docref-abbr TestSuite.import} factory)
+    of the supplied {ctext url}.
+
+    Note that test suite files may import any necessary packages
+    for its operation.  This facilitates testing external libraries,
+    and using extension packages of tests specific to those libraries.
+
+    {bold Examples}
+
+    {itemize
+        {item simple test suite}
+        {item using import}
+        {item subclassing}
+        {item graphical driver}
+        {item batch driver}
+        {item standard extensions}
+        {item using reflection}
+        {item extensions}
+    }
+}
+
+{heading level=2,
+    Deployment
+}
+
+{paragraph
+    The {docref COM.CURL.CDU.DEPLOY-SUPPORT} package provides
+    a simple framework for organizing deployment operations
+    for groups of projects.
+}
+
+||--{heading level=2,
+||--    Localization
+||--}
+||--
+||--{paragraph
+||--    TODO.
+||--}
+
+
+|| ====================
+
+{curl-copyright}
+
