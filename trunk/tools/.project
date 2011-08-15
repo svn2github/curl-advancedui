@@ -3,7 +3,6 @@
 	<name>COM.CURL.ADVANCED-UI.TOOLS</name>
 	<comment>A Curl Project</comment>
 	<projects>
-		<project>COM.CURL.ADVANCED-UI.TESTS</project>
 	</projects>
 	<buildSpec>
 	</buildSpec>

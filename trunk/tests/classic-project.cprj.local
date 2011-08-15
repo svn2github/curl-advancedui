@@ -1,5 +1,5 @@
 || Local Project Settings Settings Database -- DO NOT EDIT
 {Settings
-    {Entry key = "file-locations", value = ""}
+    {Entry key = "file-locations", value = "\{\"t-carousel2.curl\" 1 0 1 0\}\{\"t-animation-button.dcurl\" 1 0 1 0\}"}
     {Entry key = "current-target", value = "deploy"}
 }

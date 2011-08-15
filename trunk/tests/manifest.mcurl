@@ -16,7 +16,7 @@
 ||| @author Hitoshi Okada
 |||
 {curl 6.0, 7.0, 8.0 manifest}
-{manifest COM.CURL.TEST}
+{manifest COM.CURL.ADVANCED-UI.TESTS}
 
 ||--{delegate-to COM.CURL.ADVANCED-UI,
 ||--    location = "../src/advanced-ui/manifest.mcurl"}

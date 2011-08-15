@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
 	<name>COM.CURL.ADVANCED-UI.TESTS</name>
-	<comment>Curl プロジェクト</comment>
+	<comment>A Curl Project</comment>
 	<projects>
-		<project>COM.CURLAP.ADVANCED-UI</project>
-		<project>ide</project>
 	</projects>
 	<buildSpec>
 	</buildSpec>
