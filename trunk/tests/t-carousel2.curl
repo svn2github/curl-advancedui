@@ -20,8 +20,8 @@
 {curl-file-attributes character-encoding = "utf8"}
 {applet manifest = "manifest.mcurl"}
 
-{import * from COM.CURLAP.ADVANCED-UI.CONTAINERS}
-{import * from COM.CURLAP.ADVANCED-UI.UTILS}
+{import * from COM.CURL.ADVANCED-UI.CONTAINERS}
+{import * from COM.CURL.ADVANCED-UI.UTILS}
 
 {api-version-switch
  case "7.0+", "8.0+" do

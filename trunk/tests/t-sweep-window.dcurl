@@ -21,7 +21,7 @@
     {compiler-directives careful? = true}
 }
 
-{import * from COM.CURLAP.ADVANCED-UI.CONTAINERS}
+{import * from COM.CURL.ADVANCED-UI.CONTAINERS}
 {api-version-switch
  case "7.0+", "8.0+" do
     || do nothing
