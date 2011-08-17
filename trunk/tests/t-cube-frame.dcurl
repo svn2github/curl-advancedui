@@ -34,8 +34,6 @@
 {import * from CURL.GUI.SHAPES}
 {import * from CURL.GUI.CHARTS}
 
-{install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
-
 {define-enum public Rank
     First,
     Second,
