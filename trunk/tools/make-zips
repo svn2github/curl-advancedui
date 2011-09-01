@@ -35,7 +35,7 @@ rsync "$FLAGS" "$SRCROOT/src/" "$DISTSRC/"
 rsync "$FLAGS" "$SRCROOT/deploy/$DDIR" "$DISTDIR/"
 rsync "$FLAGS" "$SRCROOT/docs-install/$DDIR/" "$DISTDOC/"
 
-HOST_LOCALE=ja
+#HOST_LOCALE=ja
 SOURCE_LOCALE=en
 DEST_LOCALE=ja
 
