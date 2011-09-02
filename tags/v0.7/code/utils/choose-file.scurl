@@ -1,0 +1,49 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Akira Mori
+|||
+
+||
+|| create choose-file with filesize limitation
+|| default max value is 100000000KB = 100GB
+{define-proc public inline {choose-file-with-size-range
+                        style:FileDialogStyle = FileDialogStyle.read,
+                        default-location:#Url = null,
+                        filters:{Array-of FileDialogFilter} = FileDialogFilter.all-files-filter-array,
+                        owner:#View = null,
+                        title:#String = null,
+                        min-size:int64 = 0,
+                        max-size:int64 = 100000000
+                    }:(#Url, bool)
+    def file-url = {choose-file
+                       style = style,
+                       default-location = default-location,
+                       filters = filters,
+                       owner = owner,
+                       title = title
+                   }
+    {if-non-null file-url then
+        def urlobj =  {file-url.resolve}
+        {if {type-of urlobj} == LocalFile then
+            def size = {urlobj.info}.size
+            {if  size >= max-size * 1000 or size <= min-size * 1000 then
+                {return file-url, false}
+             else  
+            }
+        }
+    }
+    {return file-url, true}
+}

@@ -1,0 +1,538 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Yohei Yoshida
+|||
+
+{import * from CURL.GRAPHICS.SCENE}
+{import * from COM.CURL.ADVANCED-UI.UTILS}
+{import * from CURL.LANGUAGE.COMPILER}
+
+{define-class public CubeFrame {inherits Frame}
+
+  {local-option public button-placement:ButtonPlacement
+    {self.update-button-placement button-placement}
+  }
+  
+  || timer for animation
+  field private _timer:Timer
+  
+  field private _frames:{Array-of Frame}
+  {getter public {frames}:{Array-of Frame}
+    {return self._frames}
+  }
+  {setter public {frames frames:{Array-of Frame}}:void
+    set self._frames = frames
+  }
+
+  field private _menu-buttons:{Array-of CommandButton} = {{Array-of CommandButton}}  
+  field private _textures:{Array-of Texture} = {{Array-of Texture}}
+  
+  field private _index:int = 0
+  {getter public {index}:int
+    {return self._index}
+  }
+  {setter public {index index:int}:void
+    set self._index = index
+  }
+  
+  || vertexes of Cube
+  field private left-top-back-vertex:Distance3d = {Distance3d -0.5m,  0.5m, -0.5m}
+  field private right-top-back-vertex:Distance3d = {Distance3d 0.5m,  0.5m, -0.5m}
+  field private right-top-front-vertex:Distance3d = {Distance3d 0.5m,  0.5m,  0.5m}
+  field private left-top-front-vertex:Distance3d = {Distance3d -0.5m,  0.5m,  0.5m}
+  field private left-bottom-back-vertex:Distance3d = {Distance3d -0.5m, -0.5m, -0.5m}
+  field private right-bottom-back-vertex:Distance3d = {Distance3d 0.5m, -0.5m, -0.5m}
+  field private right-bottom-front-vertex:Distance3d = {Distance3d 0.5m, -0.5m,  0.5m}
+  field private left-bottom-front-vertex:Distance3d = {Distance3d -0.5m, -0.5m,  0.5m}
+
+  field private _scale:double = 1.0
+  field private _cube-angle:Angle = 0deg
+  field private _alpha:Fraction = 1.0
+  field private _first-time?:bool = true
+  field private rg:Renderer3dGraphic
+  field private _tc:TabContainer
+  field private _random-generator:Random = {Random}
+  field private _random-x:int = 1
+  field private _random-y:int = 0
+  field private _random-z:int = 0
+
+  {constructor public {default
+                          frames:{Array-of Frame},
+                          button-placement:ButtonPlacement = ButtonPlacement.top,
+                          ...
+                      }
+    set self._frames = frames
+
+    || this is needed for creating thumnails with proper appearances   
+    {for frame in self._frames do
+        {if frame.background == Background.transparent then
+            set frame.background = {LinearGradientFillPattern
+                                       {Fraction2d 0, 0},
+                                       {Fraction2d 1, 1},
+                                       {Spectrum.from-endpoints
+                                           "white",
+                                           "silver"
+                                       }
+                                   }
+        }
+    }
+    
+    set self.rg =
+        {Renderer3dGraphic
+            repaint-handler=
+            {proc {rg:Renderer3dGraphic,
+                   ren:Renderer3d,
+                   area:#RectangleSet
+                  }:void
+                {self.redraw-proc
+                    ren,
+                    self._textures
+                }
+            }
+        }
+
+    set self._tc = {TabContainer
+                       tab-style = "hide"
+                   }
+
+    {for frame in self._frames do
+        {self._tc.add-pane
+            {TabPane
+                margin = 0pt,
+                halign = "left",
+                valign = "top",
+                frame
+            }
+        }
+    }
+    
+    {self.set-index-buttons {{Array-of CommandButton}}}
+    
+    {self.update-button-placement button-placement}
+    
+    set self._timer =
+        {self.rg.animate
+            frequency = 30fps,
+            repeat = 0,
+            {on TimerEvent do                
+                {if self._timer.repeat == 29 then
+                    set self._tc.visible? = false
+                    set self.rg.visible? = true
+                }
+                
+                {self.rg.update-drawable}
+                
+                {if self._timer.repeat == 0 then
+                    {self._tc.show-pane-at-index
+                        self._index
+                    }
+                    set self._tc.visible? = true
+                    set self.rg.visible? = false
+                }
+            }
+        }
+
+    set self.rg.visible? = false
+    
+    {construct-super
+        {splice ...}
+    }
+  }
+
+  {method {draw-quad
+              renderer:Renderer3d,
+              vertex-0:Distance3d,
+              vertex-1:Distance3d,
+              vertex-2:Distance3d,
+              vertex-3:Distance3d,
+              texture:Texture
+          }:void
+
+    || Add 4 vertices
+    {render-primitive
+        p:Primitive,
+        type=Primitive.quads
+        on renderer do
+
+        || Sets the texture to use.
+        set renderer.texture = texture
+
+        {p.texture-coord2 0, 1}
+        {p.vertex3v vertex-3}
+
+        {p.texture-coord2 1, 1}
+        {p.vertex3v vertex-2}
+
+        {p.texture-coord2 1, 0}
+        {p.vertex3v vertex-1}
+
+        {p.texture-coord2 0, 0}
+        {p.vertex3v vertex-0}
+    }
+  }
+
+  {method {redraw-proc
+              renderer:Renderer3d,
+              textures:{Array-of Texture}
+          }:void
+    || Clear window graphic with background color
+    {renderer.clear
+        color = {if self.background == Background.transparent then
+                    {Color.from-rgb 255, 255, 255}
+                 else
+                    {Color.from-pixel {self.background.to-Pixel}}
+                }
+    }
+    || uncomment the next line to see 'inside' the cube
+    ||    set renderer.cull-face = Cull.front
+    set renderer.cull-face-enabled? = true
+
+    || Render in perspective
+    {renderer.projection-matrix.frustum
+        -0.25m, 0.25m, || left, right
+        -0.25m, 0.25m, || bottom, top
+        || "near" and "far" are distances from the eye position (for frustum)
+        0.5m, 5m
+    }
+    {renderer.modelview-matrix.load-identity}
+
+    || This moves the model away from the eye position (which is 0, 0, 0)
+    {renderer.modelview-matrix.translate 0m, 0m, -1.50m}
+    
+    || This rotates the whole cube by the starting and destination index
+    {renderer.modelview-matrix.rotate {Direction3d self._random-x, self._random-y, self._random-z}, 4 * self._cube-angle}
+    || The self._tc.current-pane-index means the starting index of displayed frame
+    || and the self._index means the destination index
+    {switch self._index
+     case 0 do
+        {switch self._tc.current-pane-index
+         case 1 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, 1, 0}, self._cube-angle}
+         case 2 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, -1, 0}, self._cube-angle}
+         case 3 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, 1, 0}, self._cube-angle}
+            {renderer.modelview-matrix.rotate {Direction3d 1, 0, 0}, self._cube-angle}
+         case 4 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, -1, 0}, self._cube-angle}
+            {renderer.modelview-matrix.rotate {Direction3d -1, 0, 0}, self._cube-angle}
+         case 5 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, 1, 0}, 2 * self._cube-angle}
+        }
+     case 1 do
+        {switch self._tc.current-pane-index
+         case 0 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, -1, 0}, self._cube-angle}
+         case 2 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, -1, 0}, 2 * self._cube-angle}
+         case 3 do
+            {renderer.modelview-matrix.rotate {Direction3d 1, 0, 0}, self._cube-angle}
+         case 4 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, -1, 0}, 2 * self._cube-angle}
+            {renderer.modelview-matrix.rotate {Direction3d -1, 0, 0}, self._cube-angle}
+         case 5 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, 1, 0}, self._cube-angle}
+        }
+     case 2 do
+        {switch self._tc.current-pane-index
+         case 0 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, 1, 0}, self._cube-angle}
+         case 1 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, 1, 0}, 2 * self._cube-angle}
+         case 3 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, 0, -1}, 2 * self._cube-angle}
+            {renderer.modelview-matrix.rotate {Direction3d -1, 0, 0}, self._cube-angle}
+         case 4 do
+            {renderer.modelview-matrix.rotate {Direction3d -1, 0, 0}, self._cube-angle}
+         case 5 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, -1, 0}, self._cube-angle}
+        }
+     case 3 do
+        {switch self._tc.current-pane-index
+         case 0 do
+            {renderer.modelview-matrix.rotate {Direction3d -1, 0, 0}, self._cube-angle}
+            {renderer.modelview-matrix.rotate {Direction3d 0, -1, 0}, self._cube-angle}
+         case 1 do
+            {renderer.modelview-matrix.rotate {Direction3d -1, 0, 0}, self._cube-angle}
+         case 2 do
+            {renderer.modelview-matrix.rotate {Direction3d 1, 0, 0}, self._cube-angle}
+            {renderer.modelview-matrix.rotate {Direction3d 0, 0, 1}, 2 * self._cube-angle}
+         case 4 do
+            {renderer.modelview-matrix.rotate {Direction3d 1, 0, 0}, 2 * self._cube-angle}
+            {renderer.modelview-matrix.rotate {Direction3d 0, 0, 1}, 2 * self._cube-angle}
+         case 5 do
+            {renderer.modelview-matrix.rotate {Direction3d -1, 0, 0}, self._cube-angle}
+            {renderer.modelview-matrix.rotate {Direction3d 0, 1, 0}, self._cube-angle}
+        }
+     case 4 do
+        {switch self._tc.current-pane-index
+         case 0 do
+            {renderer.modelview-matrix.rotate {Direction3d 1, 0, 0}, self._cube-angle}
+            {renderer.modelview-matrix.rotate {Direction3d 0, 1, 0}, self._cube-angle}
+         case 1 do
+            {renderer.modelview-matrix.rotate {Direction3d 1, 0, 0}, self._cube-angle}
+            {renderer.modelview-matrix.rotate {Direction3d 0, 1, 0}, 2 * self._cube-angle}
+         case 2 do
+            {renderer.modelview-matrix.rotate {Direction3d 1, 0, 0}, self._cube-angle}
+         case 3 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, 0, -1}, 2 * self._cube-angle}
+            {renderer.modelview-matrix.rotate {Direction3d -1, 0, 0}, 2 * self._cube-angle}
+         case 5 do
+            {renderer.modelview-matrix.rotate {Direction3d 1, 0, 0}, self._cube-angle}
+            {renderer.modelview-matrix.rotate {Direction3d 0, -1, 0}, self._cube-angle}
+        }
+     case 5 do
+        {switch self._tc.current-pane-index
+         case 0 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, -1, 0}, 2 * self._cube-angle}
+         case 1 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, -1, 0}, self._cube-angle}
+         case 2 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, 1, 0}, self._cube-angle}
+         case 3 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, -1, 0}, self._cube-angle}
+            {renderer.modelview-matrix.rotate {Direction3d 1, 0, 0}, self._cube-angle}
+         case 4 do
+            {renderer.modelview-matrix.rotate {Direction3d 0, 1, 0}, self._cube-angle}
+            {renderer.modelview-matrix.rotate {Direction3d -1, 0, 0}, self._cube-angle}
+        }
+    }
+
+    {switch self._tc.current-pane-index
+     case 0 do
+        {renderer.modelview-matrix.rotate {Direction3d 0, 0, 1}, 90deg}
+        {renderer.modelview-matrix.rotate {Direction3d 0, 1, 0}, 180deg}
+     case 1 do
+        {renderer.modelview-matrix.rotate {Direction3d -1, 0, 0}, 90deg}
+        {renderer.modelview-matrix.rotate {Direction3d 0, 1, 0}, 90deg}
+     case 2 do
+        {renderer.modelview-matrix.rotate {Direction3d 1, 0, 0}, 90deg}
+        {renderer.modelview-matrix.rotate {Direction3d 0, -1, 0}, 90deg}
+     case 3 do
+        {renderer.modelview-matrix.rotate {Direction3d 0, -1, 0}, 90deg}
+        {renderer.modelview-matrix.rotate {Direction3d 1, 0, 0}, 180deg}
+     case 4 do
+        {renderer.modelview-matrix.rotate {Direction3d 0, 1, 0}, 90deg}
+        {renderer.modelview-matrix.rotate {Direction3d 1, 0, 0}, 180deg}
+     case 5 do
+        {renderer.modelview-matrix.rotate {Direction3d 0, 0, -1}, 90deg}
+    }
+
+    || by changing the scale, the cube rotates dynamically 
+    {renderer.modelview-matrix.scale self._scale, self._scale, self._scale}
+
+    || Draw the front face of the cube.
+    {self.draw-quad
+        renderer,
+        self.left-bottom-front-vertex,
+        self.left-top-front-vertex,
+        self.right-top-front-vertex,
+        self.right-bottom-front-vertex,
+        textures[0]
+    }
+    
+    || Draw the back face of the cube.
+    {self.draw-quad
+        renderer,
+        self.left-top-back-vertex,
+        self.left-bottom-back-vertex,
+        self.right-bottom-back-vertex,
+        self.right-top-back-vertex,
+        textures[1]
+    }
+    
+    || Draw the bottom face of the cube.
+    {self.draw-quad
+        renderer,
+        self.left-bottom-back-vertex,
+        self.left-bottom-front-vertex,
+        self.right-bottom-front-vertex,
+        self.right-bottom-back-vertex,
+        textures[2]
+    }
+    
+    || Draw the top face of the cube.
+    {self.draw-quad
+        renderer,
+        self.left-top-front-vertex,
+        self.left-top-back-vertex,
+        self.right-top-back-vertex,
+        self.right-top-front-vertex,
+        textures[3]
+    }
+    
+    || Draw the right face of the cube.
+    {self.draw-quad
+        renderer,
+        self.right-bottom-back-vertex,
+        self.right-bottom-front-vertex,
+        self.right-top-front-vertex,
+        self.right-top-back-vertex,
+        textures[4]
+    }
+    
+    || Draw the left face of the cube.
+    {self.draw-quad
+        renderer,
+        self.left-bottom-front-vertex,
+        self.left-bottom-back-vertex,
+        self.left-top-back-vertex,
+        self.left-top-front-vertex,
+        textures[5]
+    }
+    
+    || Increment the angle by 3 deg so that the cube spins
+    {inc self._cube-angle, 3deg}
+
+    || Increment and Decrement the scale by 0.04 so that the cube spins dynamic
+    {if self._timer.repeat < 15 then
+        set self._scale = self._scale + 0.025
+     else
+        set self._scale = self._scale - 0.025
+    }
+
+    || reset the _cube-angle when the rotation ends
+    {if self._timer.repeat == 0 then
+        set self._cube-angle = 0deg
+    }
+  }
+
+  || first time the cube attached to the view, create the thumbnails of frames 
+  {method public {note-attached}:void
+    {super.note-attached}
+    {if self._first-time? then
+        {{self.get-view}.add-event-handler
+            {on ViewActivateEvent do
+                {if self._first-time? then
+                    set self._first-time? = false
+                    {for tab-pane in self._tc.tab-panes do
+                        {self._textures.append
+                            {({create-thumbnail tab-pane} asa FillPattern).to-Texture}
+                        }
+                    }
+                }
+            }
+        }
+    }
+  }
+  
+  {method public {rotate index:int}:void
+    {if self._timer.repeat == 0 then
+        set self.index = index
+        set self._random-x = {self._random-generator.next-uint8} mod 3 asa int - 1
+        set self._random-y = {self._random-generator.next-uint8} mod 3 asa int - 1
+        set self._random-z = {self._random-generator.next-uint8} mod 3 asa int - 1
+        {if self._random-x == 0 and
+            self._random-y == 0 and
+            self._random-z == 0
+         then
+            set self._random-x = 1
+        }
+        set self._timer.repeat = 30
+    }
+  }
+
+  {method private {update-button-placement button-placement:ButtonPlacement}:void
+    {self.clear}
+    {switch button-placement
+     case ButtonPlacement.top, ButtonPlacement.bottom do
+        let hbox:HBox = {spaced-hbox}
+        {for button in self._menu-buttons do
+            {hbox.add button}
+        }
+        {if button-placement == ButtonPlacement.top then
+            {self.add
+                {spaced-vbox
+                    hbox,
+                    {OverlayBox
+                        self._tc,
+                        self.rg
+                    },
+                    halign = "left"
+                }
+            }
+         else
+            {self.add
+                {spaced-vbox
+                    {OverlayBox
+                        self._tc,
+                        self.rg
+                    },
+                    hbox,
+                    halign = "left"
+                }
+            }
+        }
+     case ButtonPlacement.left, ButtonPlacement.right do
+        let vbox:VBox = {spaced-vbox}
+        {for button in self._menu-buttons do
+            {vbox.add button}
+        }
+        {if button-placement == ButtonPlacement.left then
+            {self.add
+                {spaced-hbox
+                    vbox,
+                    {OverlayBox
+                        self._tc,
+                        self.rg
+                    },
+                    valign = "top"
+                }
+            }
+         else
+            {self.add
+                {spaced-hbox
+                    {OverlayBox
+                        self._tc,
+                        self.rg
+                    },
+                    vbox,
+                    valign = "top"
+                }
+            }
+        }
+     case ButtonPlacement.none do
+        {self.add
+            {OverlayBox
+                self._tc,
+                self.rg
+            }
+        }
+    }
+  }
+
+  {method private {set-index-buttons buttons:{Array-of CommandButton}}:void
+    {for i = 0 to 5 do
+        {self._menu-buttons.append
+            {OscillatingCommandButton
+                {Pixmap.from-url
+                    {url "../images/button-ok-small.png"}
+                },
+                font-size = 50pt,
+                font-family = "Curlz MT",
+                static-label = i + 1,
+                image-placement = "overlap",
+                style = "label-only",
+                takes-focus? = false,
+                user-data = i,
+                {on Action at cb:CommandButton do
+                    {self.rotate cb.user-data asa int}
+                }
+            }
+        }
+    }
+  }
+}

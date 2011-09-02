@@ -1,0 +1,91 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Hitoshi Okada
+|||
+
+{curl 6.0, 7.0, 8.0 applet}
+{applet manifest = "manifest.mcurl"}
+
+{import * from COM.CURL.ADVANCED-UI.CONTAINERS}
+{api-version-switch
+ case "7.0+", "8.0+" do
+    || do nothing
+ case "6.0+" do
+    {import * from COM.CURL.GUI.STYLED-CONTROLS}
+    {install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
+}
+
+{def base-frame = {Frame}}
+
+{do
+    || Disclosuer
+    def frame1 = 
+        {DisclosureFrame 
+            width = 10cm, 
+            height = 5cm, 
+            {spaced-vbox 
+                {TextField width = 10cm, height = 1cm}, 
+                {TextField width = 10cm, height = 3cm}, 
+                {ComboBox width = 10cm, height = 1cm}
+            }
+        }
+
+    def frame2 = 
+        {DisclosureFrame 
+            width = 10cm, 
+            height = 5cm, 
+            {spaced-vbox 
+                {TextField width = 10cm, height = 1cm}, 
+                {TextField width = 10cm, height = 1cm}, 
+                {TextField width = 10cm, height = 1cm}, 
+                {TextField width = 10cm, height = 1cm}, 
+                {ComboBox width = 10cm, height = 1cm}
+            }
+        }
+    {base-frame.add
+        {spaced-vbox
+            height = 15cm,
+            {text Disclosure},
+            
+            || normal CommandButton
+            {CommandButton 
+                label = "switch!",
+                {on Action do
+                    {frame1.switch}
+                }
+            },
+            frame1,
+            
+            
+            || DisclosureCommandButton
+            {DisclosureCommandButton
+                ||open-label = "open!!",
+                ||close-label = "close!!",
+                frame2
+            },
+            frame2
+        },
+        replace? = true
+    }
+}
+
+{View 
+    base-frame,
+    visibility = "normal",
+    {on WindowClose do
+        {exit}
+    }
+}

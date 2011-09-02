@@ -1,0 +1,78 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Hitoshi Okada
+|||
+
+{curl 6.0, 7.0, 8.0 applet}
+{curl-file-attributes character-encoding = "shift-jis"}
+{applet manifest = "manifest.mcurl"}
+
+{import * from COM.CURL.ADVANCED-UI.CONTROLS}
+{api-version-switch
+ case "7.0+", "8.0+" do
+    || do nothing
+ case "6.0+" do
+    {import * from COM.CURL.GUI.STYLED-CONTROLS}
+    {install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
+}
+
+{View
+    {spaced-vbox
+        {text Normal TextField},
+        {TextField
+            {validate-with 
+                {NumericValidator}, required? = true
+            },
+            {on e:ValidationComplete at v:TextField do
+                {if v.valid? then
+                    {dump e, v}
+                }
+            }
+        },
+
+        {text ValidationTextField},
+        {ValidationTextField
+            {validate-with 
+                {NumericValidator}, 
+                required? = true, 
+                dialog-on-finished? = false
+            }
+        },
+
+        {ValidationTextField
+            prompt = "Just numeric value.",
+            ok-image = {url "images/1.png"},
+            ng-image = {url "images/5.png"},
+            height = 2cm, 
+            width = 10cm, 
+            font-size = 1cm,
+            color = "red",
+            {validate-with 
+                {NumericValidator}, 
+                required? = true, 
+                dialog-on-finished? = false
+            },
+            || NOTE: v:CoreTextField (not ValidationTextField)
+            {on e:ValueFinished at v:CoreTextField do 
+                {dump e, v.value}
+            }
+        }
+    },
+    visibility = "normal",
+    {on WindowClose do
+        {exit}
+    }
+}

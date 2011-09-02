@@ -1,0 +1,152 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+{curl 6.0, 7.0, 8.0 applet}
+{curl-file-attributes character-encoding = "shift-jis"}
+{applet manifest = "manifest.mcurl"}
+
+{import * from COM.CURL.ADVANCED-UI.CONTROLS}
+{api-version-switch
+ case "7.0+", "8.0+" do
+    || do nothing
+ case "6.0+" do
+    {import * from COM.CURL.GUI.STYLED-CONTROLS}
+    {install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
+}
+
+||
+|| DrillDownNodeButton
+||
+{define-class public DrillDownNodeButton
+  {inherits CommandButton}
+
+  field public-get node:DrillDownNode
+
+  {constructor public {default
+                          node:DrillDownNode,
+                          ...
+                      }
+    {construct-super {splice ...}}
+    set self.node = node
+    set self.label = node.value & " >"
+  }
+}
+
+{def base-frame = {Frame}}
+
+{do
+
+    || data tree
+    def root = {DrillDownNode "root"}
+    {root.append {DrillDownLeaf "India"}}
+    {root.append {DrillDownLeaf "China"}}
+    
+    def com1 = {DrillDownNode "USA"}
+    {com1.append {DrillDownLeaf "Massatusetts"}}
+    {com1.append {DrillDownLeaf "New York"}}
+    {com1.append {DrillDownLeaf "Texas"}}
+    {root.append com1}
+
+    def com2 = {DrillDownNode "Japan"}
+    {com2.append {DrillDownLeaf "Shibuya"}}
+    {com2.append {DrillDownLeaf "Shinjyuku"}}
+    {root.append com2}
+
+    def com3 = {DrillDownNode "Minato"}
+    {com3.append {DrillDownLeaf "Azabu"}}
+    {com3.append {DrillDownLeaf "Shibaura"}}
+    {com2.append com3}
+
+    def com4 = {DrillDownNode "Roppongi"}
+    {com4.append {DrillDownLeaf "ABC-1"}}
+    {com4.append {DrillDownLeaf "ABC-2"}}
+    {com4.append {DrillDownLeaf "ABC-3"}}
+    {com4.append {DrillDownLeaf "ABC-4"}}
+    {com4.append {DrillDownLeaf "ABC-5"}}
+    {com3.append com4}
+
+    def com5 = {DrillDownNode "Chuo"}
+    {com5.append {DrillDownLeaf "XYZ-1"}}
+    {com5.append {DrillDownLeaf "XYZ-2"}}
+    {com5.append {DrillDownLeaf "XYZ-3"}}
+    {com2.append com5}
+
+    def page:HBox = {spaced-hbox height = 1cm}
+    def list:DrillDownListBox =
+        {DrillDownListBox
+            root,
+            height = 5cm,
+            width = 7cm,
+            font-size = 16pt,
+            || listen DrillDownEvent
+            {on e:DrillDownEvent at v:DrillDownListBox do
+                {page.add 
+                    {DrillDownNodeButton
+                        e.node,
+                        style = "rollover",
+                        font-size = 16pt,
+                        height = 1cm,
+                        {on Action at v:DrillDownNodeButton do
+                            {list.drill-up-to-pointed-node v.node}
+                            {for n in page.reverse-ordered-children do
+                                {if (n asa DrillDownNodeButton).node != v.node 
+                                 then
+                                    {n.detach}
+                                 else
+                                    {break}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            || listen DrillDownLeafEvent
+            {on e:DrillDownLeafEvent at v:DrillDownListBox do
+                {popup-message e.leaf.value}
+            }
+        }
+    
+    {base-frame.add
+        {spaced-vbox
+            page,
+            list,
+            width = 10cm,
+            {spaced-hbox
+                {CommandButton
+                    label = "Drill up!!",
+                    height = 1cm,
+                    font-size = 16pt,
+                    {on Action do
+                        {if {list.drill-up} then
+                            {{page.reverse-ordered-children.read-one}.detach}
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+{View
+    base-frame,
+    visibility = "normal",
+    {on WindowClose do
+        {exit}
+    }
+}
+

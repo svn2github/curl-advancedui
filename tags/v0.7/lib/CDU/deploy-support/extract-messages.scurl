@@ -1,0 +1,295 @@
+||| Copyright (C) 1998-2009, Sumisho Computer Systems Corp.  All Rights Reserved.
+|||
+||| An OpenCurl project.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|| derived from "curl://install/ide/translate/bin/estract-messages.xcurl"
+
+{import * from CURL.TRANSLATE.ENTRY, 
+    location = "curl://install/ide/translate/entry/load.scurl"
+}
+{import * from CURL.LANGUAGE.SOURCE}
+
+
+{define-proc {record-localize
+                 strings:TranslationEntrySet,
+                 where:{HashTable-of TranslationEntry, CurlSource},
+                 key:String,
+                 default:String,
+                 comment:String,
+                 this-where:CurlSource
+             }:void
+    let str:TranslationEntry = {TranslationEntry key, default, comment}
+    {try
+        {strings.insert str}
+     catch ex:TranslationEntryConflictException do
+        let old-loc:CurlSource = where[{strings.get-member str}]
+        let (old-line:int, old-column:int) =
+            {old-loc.location-to-line-column old-loc.start-location}
+        {this-where.parse-error
+            "%s",
+            ex.message & " " &
+            {hlformat "Conflicting call found at %1!s!:%2!d! [%3!d!].",
+                old-loc.file-info.url, old-line, old-column
+            }
+        }
+    }
+
+    || Record where it came from, in case of error, but let the
+    || original CurlSource get garbage collected.
+    set where[str] = {EmptySource src = this-where}
+}
+
+
+|| Iterate through a CurlSource, processing all prefix expressions and
+|| ignoring everything else.
+||
+{define-proc {process-prefix-args
+                 src:CurlSource,
+                 strings:TranslationEntrySet,
+                 where:{HashTable-of TranslationEntry, CurlSource},
+                 base-url:Url,
+                 top-level?:bool = false
+             }:void
+    let index:ParseIndex = BOS
+    let next:#CurlSource
+    {while index != EOS do
+        set (next, index) =
+            {src.parse-text index, cooked? = false, skip-whitespace? = false}
+        {type-switch next
+         case p:Prefix do
+            {process-prefix
+                p, strings, where, base-url, top-level? = top-level?
+            }
+        }
+    }
+}
+
+
+|| Recurse through expr, selecting expressions:
+||
+||   localize
+||   host-localize
+||   lformat
+||   hlformat
+||   lmessage
+||   hlmessage
+||
+|| ignoring all others and throwing a syntax error for poorly-formed
+|| localize/host-localize expressions.
+||
+|| Recursively follow {include ...} statements.
+||
+|| Don't recurse into {doc/doc-next/inline-C ...}.
+||
+{define-proc {process-prefix
+                 expr:Prefix,
+                 strings:TranslationEntrySet,
+                 where:{HashTable-of TranslationEntry, CurlSource},
+                 base-url:Url,
+                 top-level?:bool = false
+             }:void
+    {syntax-switch expr
+     case {pattern {localize ?rest:verbatim}} do
+        let (key:String, original:String, comment:String) =
+            {parse-localize-args "localize", rest} ||""
+        {record-localize strings, where, key, original, comment, expr}
+     case {pattern {host-localize ?rest:verbatim}} do
+        let (key:String, original:String, comment:String) =
+            {parse-localize-args "host-localize", rest} ||""
+        {record-localize strings, where, key, original, comment, expr}
+     case {pattern {lformat ?rest:verbatim}} do
+        let (key:String, original:String, comment:String) =
+            {parse-localize-args
+                "lformat", rest, ignore-extra-arguments? = true ||""
+            }
+        {record-localize strings, where, key, original, comment, expr}
+     case {pattern {hlformat ?rest:verbatim}} do
+        let (key:String, original:String, comment:String) =
+            {parse-localize-args
+                "hlformat", rest, ignore-extra-arguments? = true ||""
+            }
+        {record-localize strings, where, key, original, comment, expr}
+     case {pattern {lmessage ?rest:verbatim}} do
+        || Expand the macro and recursively process what's left.
+        let (key:String, original:String, comment:String) =
+            {parse-lmessage-args "lmessage", rest} ||""
+        {record-localize strings, where, key, original, comment, expr}
+     case {pattern {hlmessage ?rest:verbatim}} do
+        || Expand the macro and recursively process what's left.
+        let (key:String, original:String, comment:String) =
+            {parse-lmessage-args "hlmessage", rest} ||""
+        {record-localize strings, where, key, original, comment, expr}
+     case
+        || Select for {define-macro <attributes> {localize/host-localize ...}
+        ||
+        {pattern
+            {?:{one-of
+                   {pattern define-macro}, {pattern define-compiler-syntax}
+               }
+                ?attributes:identifiers
+                {?:{one-of
+                       {pattern localize},
+                       {pattern host-localize},
+                       {pattern lformat},
+                       {pattern hlformat},
+                       {pattern lmessage},
+                       {pattern hlmessage}
+                   }
+                    ?args:verbatim
+                }
+                ?rest:verbatim
+            }
+        }
+     do
+        || Don't recurse into
+        ||   {define-macro <attributes> {localize/host-localize ...} ...}.
+        ||
+     case
+        || Select for {package ...}
+        ||
+        {pattern {package ?rest:verbatim}}
+     do
+        {if top-level? then
+            {process-package-declaration rest, strings, where, base-url}
+        }
+     case
+        || Select for {include ...}
+        ||
+        {pattern {include ?filenames:{comma-sequence ?:expression}}}
+     do
+        {if top-level? then
+            {for filename in filenames do
+                {process-include filename, strings, where, base-url}
+            }
+        }
+     case
+        || Select for {doc/doc-next/inline-C ...}
+        ||
+        {pattern
+            {?:{one-of
+                   {pattern doc},
+                   {pattern doc-next},
+                   {pattern inline-C}
+               }
+                ?rest:verbatim
+            }
+        }
+     do
+        || Don't recurse into {doc/doc-next/inline-C ...}.
+        ||
+     else
+        || Recursively iterate through all prefix-expressions inside
+        || expr.
+        ||
+        {process-prefix-args expr.contents, strings, where, base-url}
+    }
+}
+
+
+|| Process a package-declaration.
+{define-proc {process-package-declaration
+                 rest:CurlSource,
+                 strings:TranslationEntrySet,
+                 where:{HashTable-of TranslationEntry, CurlSource},
+                 base-url:Url
+             }:void
+    {syntax-switch rest, must-match? = true
+     case {pattern
+              ?metadata-args-expr:
+              {comma-sequence
+                  ?:{one-of {pattern ?:identifier = ?:expression}, expression}
+              }
+          }
+     do
+        {for expr in metadata-args-expr do
+            {syntax-switch expr
+             case {pattern {files ?filenames:{comma-sequence ?:expression}}} do
+                || handle {files ...} directives
+                ||
+                {for filename in filenames do
+                    {process-include filename, strings, where, base-url}
+                }
+            }
+        }
+    }
+}
+
+
+|| Process an include statement, groveling through the specified file.
+||
+{define-proc {process-include
+                 rest:CurlSource,
+                 entries:TranslationEntrySet,
+                 where:{HashTable-of TranslationEntry, CurlSource},
+                 base-url:Url
+             }:void
+    let new-base-url:Url =
+        {base-url.merge
+            {syntax-switch rest, must-match? = true
+             case {pattern ?string-expr:{literal String}} do
+                string-expr.value asa String
+            }
+        }
+    {extract-translation-entries entries, new-base-url, where}
+}
+
+
+|| Extract strings from file specified by base-url (along with
+|| everything it includes).
+||
+|| See comments above process-prefix for a more detailed description
+|| of the behavior.
+||
+{let constant files-seen:{Set-of Url} = {{Set-of Url}}}
+
+{define-proc {extract-translation-entries
+                 entries:TranslationEntrySet,
+                 base-url:Url,
+                 where:{HashTable-of TranslationEntry, CurlSource}
+             }:void
+    || Only proceed if we've never seen this file before.  This deals
+    || with files reached through both "sources.curl" and explicit
+    || "include ..." statements.
+    {if not {files-seen.member? base-url} then
+        {files-seen.insert base-url}
+     else
+        {return}
+    }
+
+    let in:TextInputStream = {read-open base-url}
+    let cstis-success?:bool = false
+    {try
+        {find-and-execute-curl-file-attributes in}
+        let cstis:CurlSourceTextInputStream = {CurlSourceTextInputStream in}
+        set cstis-success? = true
+        {try
+            {while true do
+                let (src:CurlSource, eof?:bool) = {cstis.read-one}
+                {if eof? then
+                    {break}
+                }
+                {process-prefix-args
+                    src, entries, where, base-url, top-level? = true
+                }
+            }
+         finally
+            {cstis.close}
+        }
+     finally
+        {if not cstis-success? then
+            {in.close}
+        }
+    }
+}

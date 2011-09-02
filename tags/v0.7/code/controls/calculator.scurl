@@ -1,0 +1,125 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+||
+|| CalculatorTextField
+||
+|| Functionality:
+|| - valid key is "number, +, -, *, /, enter".
+|| - value is double.
+|| TODO: 
+||  - Support BigDecimal instead of double after Curl RTE supports BigDecimal.
+||  - Popup the CalculatorFrame
+{define-class public open CalculatorTextField
+  {inherits TextField}
+
+  field private value-format:String
+  field private mem-value:double = 0.0
+  field private new-value:double = 0.0
+  field private mem-operator:char = 0x0000
+  field private new-operator:char = 0x0000
+  field private previous-operator:char = 0x0000
+
+  {getter public open {value-as-double}:double
+    {return {self.value.to-double}}
+  }
+
+  {constructor public {default 
+                          value-format:String = "%.12f",
+                          prompt:String = "0.",
+                          halign:any = "right",
+                          ...
+                      }
+
+    set self.value-format = value-format
+    {construct-super
+        prompt = prompt, 
+        halign = halign,
+        {splice ...}
+    }
+  }
+
+  || override
+  {method public open {on-key-press e:KeyPress}:void
+
+    def p-format = 
+        {proc {s:String}:String
+            {return 
+                {{format self.value-format, {s.to-double}}.trim-right-clone 
+                    trim-chars = {CharClass "0"}
+                }
+            }
+        }
+
+    {switch e.value 
+     case '0', '1', '2', '3', '4', '5', '6', '7', '8', '0', '.' do
+        {if self.previous-operator == KeyPressValue.enter then
+            {self.clear}
+        }
+        {if self.new-operator != 0x0000 then
+            set self.mem-operator = self.new-operator
+            set self.new-operator = 0x0000
+            set self.value = ""
+        }
+
+     case '+', '-', '*', '/', KeyPressValue.enter do
+        set self.new-operator = e.value
+        || if more than 2 operator actions, don't run.
+        {switch self.previous-operator 
+         case '+', '-', '*', '/', KeyPressValue.enter do
+            {after 0s do
+                set self.value = 
+                    {self.value.trim-right-clone 
+                        trim-chars = {CharClass "+-*/"}}
+            }
+            set self.previous-operator = e.value
+            {return}
+        }
+        set self.new-value = {self.value.to-double}
+        {if self.mem-operator != 0x0000 then
+            {switch self.mem-operator
+             case '+' do
+                set self.mem-value = self.mem-value + self.new-value
+             case '-' do
+                set self.mem-value = self.mem-value - self.new-value
+             case '*' do
+                set self.mem-value = self.mem-value * self.new-value
+             case '/' do
+                set self.mem-value = self.mem-value / self.new-value
+            }
+         else
+            set self.mem-value = self.new-value
+        }
+        set self.value = {p-format (self.mem-value & "")}
+        {e.consume}
+
+     else
+        {e.consume}
+    }
+    set self.previous-operator = e.value
+  }
+
+  {method public open {clear}:void
+
+    set self.value = ""
+    set self.mem-value = 0.0
+    set self.new-value = 0.0
+    set self.mem-operator = 0x0000
+    set self.new-operator = 0x0000
+  }  
+}

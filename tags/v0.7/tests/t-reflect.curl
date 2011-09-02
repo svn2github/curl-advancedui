@@ -1,0 +1,83 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Masaki Kodan
+|||
+
+{curl 6.0, 7.0, 8.0 applet}
+{curl-file-attributes character-encoding = "utf8"}
+{applet manifest = "manifest.mcurl"}
+
+{import * from COM.CURL.ADVANCED-UI.UTILS}
+{api-version-switch
+ case "7.0+", "8.0+" do
+    || do nothing
+ case "6.0+" do
+    {import * from COM.CURL.GUI.STYLED-CONTROLS}
+    {install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
+}
+
+{value
+    let init:ReflectImage = {ReflectImage reflect-height = 40, {url "./images/logo_curl.gif"}}
+    
+    
+    {HBox valign = "top", spacing = 10pt,
+        {Table columns = 2,
+            {text 幅},
+            {TextField width = 25pt,
+                {on e:ValueFinished at tf:TextField do
+                    set init.width = {tf.value.to-int} * 1pt
+                }
+            },
+
+            {text 高さ},
+            {TextField width = 25pt,
+                {on e:ValueFinished at tf:TextField do
+                    set init.height = {tf.value.to-int} * 1pt
+                }
+            },
+            {text 反射高さ},
+            {TextField width = 25pt,
+                {on e:ValueFinished at tf:TextField do
+                    set init.reflect-height = {tf.value.to-int}
+                }
+            },
+            
+            {text 画像},
+            {CommandButton label = "参照",
+                {on Action do
+                    let filters:{Array-of FileDialogFilter} = {{Array-of FileDialogFilter}
+                                                                  {FileDialogFilter
+                                                                      "画像ファイル",
+                                                                      {{Array-of FileDialogTypeFilter}
+                                                                          {FileDialogTypeFilter "jpg"},
+                                                                          {FileDialogTypeFilter "gif"},
+                                                                          {FileDialogTypeFilter "bmp"},
+                                                                          {FileDialogTypeFilter "png"}
+                                                                      }
+                                                                  }
+                                                              }
+                    let image-url:#Url = {choose-file filters = filters}
+                    {if image-url == null then {return}}
+                    set init.image-url = image-url asa Url
+                }
+            }
+
+        },
+        {Fill width = 20pt},
+        init.original,
+        init
+    }
+}

@@ -1,0 +1,109 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Minoru Asegawa
+|||
+
+{curl 6.0, 7.0, 8.0 applet}
+{applet manifest = "manifest.mcurl",
+    {compiler-directives careful? = true}
+}
+
+{import * from COM.CURL.ADVANCED-UI.CONTAINERS}
+{api-version-switch
+ case "7.0+", "8.0+" do
+    || do nothing
+ case "6.0+" do
+    {import * from COM.CURL.GUI.STYLED-CONTROLS}
+    {install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
+}
+
+
+{let pos_table:{Array-of Distance} = {{Array-of Distance}
+                                         150pt, 180pt,
+                                         333pt, 243pt,
+                                         355pt, 214pt,
+                                         70pt, 165pt
+                                     }                                   
+}
+
+{let corner_table:{Array-of String} = {{Array-of String}
+                               "upper-left",
+                               "upper-right",
+                               "lower-left",
+                               "lower-right"
+                           }
+}
+
+{let image_table:{Array-of Graphic} = {{Array-of Graphic}
+                                         {image source={url "./images/ico6.png"}},
+                                         {image source={url "./images/ico4.png"}},
+                                         {image source={url "./images/ico5.png"}},
+                                         {image source={url "./images/ico3.png"}}
+                                  }
+}
+
+{let cmb:CommandButton = {CommandButton
+                             label = "Make some window"
+                         }
+}
+
+{let first-parent:SweepWindow = {SweepWindow
+                                    width = 16cm,
+                                    height = 12cm,
+                                    halign = "center",
+                                    valign = "center",
+
+                                    {VBox
+                                        spacing = 40pt,
+                                        halign = "center",
+                                        {bold Demo for Sweep Window},
+                                        cmb
+                                    },
+
+                                    visibility = "normal",
+                                    {on WindowClose do
+                                        {exit}
+                                    }
+                                }
+}
+
+
+{cmb.add-event-handler
+    {on Action do
+        {for i:int=0 to 3 step 1 do
+            let sw:SweepWindow = {SweepWindow
+                                     view-owner = first-parent,
+                                     corner = corner_table[i rem 4],
+                                     width = 12cm,
+                                     height = 8cm,
+                                     halign = "center",
+                                     valign = "center",
+                                     visibility = "normal"
+                                 }
+            {sw.add {VBox
+                        halign = "center",
+                        image_table[i rem 4],
+                        {Fill height=10pt},
+                        "Press F12 to sweep & restore"
+                    }
+            }
+            {sw.set-position pos_table[i rem 4], pos_table[(i rem 4)*2+1]}
+        }
+    }
+}
+
+
+{value first-parent}

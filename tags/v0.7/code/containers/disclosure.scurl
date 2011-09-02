@@ -1,0 +1,110 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Hitoshi Okada
+|||
+
+||
+|| DisclosureFrame
+||
+{define-class public open DisclosureFrame
+  {inherits Frame}
+
+  field private main-child:#FrameLayout
+  field private main-height:any
+
+  || open or close?
+  {getter public open {open?}:bool
+    {return (self.child != null)}
+  }
+
+  {constructor public {default
+                          open?:bool = false,
+                          ...
+                      }
+
+    {construct-super {splice ...}}
+    set self.main-child = self.child
+    set self.main-height = self.height
+
+    {if not open? then
+        {self.close}
+    }
+  }
+
+  || open
+  {method public open {open}:void
+
+    {if-non-null mf = self.main-child then
+        {self.add mf.graphic, replace? = true}
+        set self.height = self.main-height
+    }
+  }
+
+  || close
+  {method public open {close}:void
+
+    {if-non-null mf = self.main-child then
+        {self.main-child.detach}
+        set self.height = 0cm
+    }
+  }
+
+  || if open?, call the close method
+  || if not open?, call the open method
+  {method public open {switch}:void
+    {if self.open? then
+        {self.close}
+     else 
+        {self.open}
+    }
+  }
+}
+
+
+||
+|| DisclosureCommandButton
+||   TODO: move to COM.CURL.ADVANCED-UI.CONTROLS package?
+{define-class public open DisclosureCommandButton
+  {inherits CommandButton}
+
+  {constructor public {default
+                          frame:DisclosureFrame,
+                          open-label:Label = 
+                              {image 
+                                  source = {url "../images/button-down.png"},
+                                  width = .4in, height = .4in
+                              }, 
+                          close-label:Label = 
+                              {image 
+                                  source = {url "../images/button-next.png"},
+                                  width = .4in, height = .4in
+                              },
+                          ...
+                      }
+    
+    {construct-super
+        {splice ...}, 
+        {on e:Action at v:DisclosureCommandButton do
+            {frame.switch}
+            set v.label = 
+                {if frame.open? then open-label else close-label}
+        }
+    }
+    set self.label = 
+        {if frame.open? then open-label else close-label}
+
+  }
+}

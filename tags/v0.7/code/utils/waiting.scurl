@@ -1,0 +1,65 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Masaki Kodan
+|||
+
+{import * from CURL.ENGINE.BROWSER}
+
+{define-class public PleaseWait
+
+  field private _child-frame :#AppletGraphic
+  field private _child-data  :#AppletData
+  field private _child-view  :#View
+  
+  {constructor public {default child-url:#Url = null}
+
+    set self._child-frame  = {AppletGraphic border-width = 0pt,border-color = "green"}
+    set self._child-data   = {AppletData
+                                 self._child-frame, 
+                                 {if child-url == null then {url "./progress-bar/start.curl"} else child-url asa Url}} 
+    {while self._child-data.loading? do
+        {dispatch-events true}
+    }
+  }
+
+  ||
+  {method public open {show
+                          width:any = null,
+                          height:any = null,
+                          force-on-display?:bool = true,
+                          center?:bool = false
+                      }:void
+    {if self._child-view == null then
+        set self._child-view = {View width = width, height = height, self._child-frame,
+                                   {on e:WindowClose at v:View do
+                                       ||{exit}
+                                   }
+                               }
+    }
+
+    {self._child-view.show center? = center?, force-on-display? = force-on-display?}
+  }
+
+  ||
+  {method public open {destroy}:void
+    {self._child-data.destroy}
+    {if not self._child-view.destroyed? then
+        {self._child-view.destroy}
+    }
+  }
+  
+}
+

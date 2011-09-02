@@ -1,0 +1,107 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Masaki Kodan
+|||
+{define-class public SolidBorderFrame {inherits Frame}
+
+  field private _orig-pixmap :Pixmap
+  field private _new-pixmap  :Pixmap
+  ||
+  let rgb1-1 :Pixel = {Pixel.from-int 255, 255, 255}
+  let rgb1-2 :Pixel = {Pixel.from-int 241, 241, 241}
+  let rgb1-3 :Pixel = {Pixel.from-int 179, 179, 179}
+  ||
+  let rgb2-1 :Pixel = {Pixel.from-int 255, 255, 255}
+  let rgb2-2 :Pixel = {Pixel.from-int 241, 241, 241}
+  let rgb2-3 :Pixel = {Pixel.from-int 179, 179, 179}
+
+  ||
+  let rgb3-1 :Pixel = {Pixel.from-int 209, 209, 209}
+  let rgb3-2 :Pixel = {Pixel.from-int 158, 158, 158}
+  let rgb3-3 :Pixel = {Pixel.from-int 107, 107, 107}
+  ||
+  let rgb4-1 :Pixel = {Pixel.from-int 209, 209, 209}
+  let rgb4-2 :Pixel = {Pixel.from-int 158, 158, 158}
+  let rgb4-3 :Pixel = {Pixel.from-int 107, 107, 107}
+  
+  {constructor public {default image-url:Url, ...}
+    {construct-super ...}
+
+    set self._orig-pixmap = {Pixmap.from-url image-url}
+    set self._new-pixmap  = {Pixmap self._orig-pixmap.width + 6, self._orig-pixmap.height + 6}
+    {self.create-pixmap} 
+
+    set self.background = {Background.from-Pixmap self._new-pixmap}
+    set self.width      = self._new-pixmap.width * 1px
+    set self.height     = self._new-pixmap.height * 1px
+  }
+
+  {method private {create-pixmap}:void
+    ||copy
+    {self._new-pixmap.copy-from
+        3, 3,
+        {self._orig-pixmap.embed-clone self._orig-pixmap.width, self._orig-pixmap.height},
+        0, 0,
+        self._orig-pixmap.width, self._orig-pixmap.height}
+    ||add border
+    ||
+    {for i:int = 0 below 3 do
+        {for j:int = 0 below self._new-pixmap.width do
+            {self._new-pixmap.set j, i, 
+                {if i == 0 then      SolidBorderFrame.rgb1-1
+                 elseif i == 1 then  SolidBorderFrame.rgb1-2
+                 else                SolidBorderFrame.rgb1-3}}
+        }
+    }
+    ||
+    {for i:int = 2 below self._new-pixmap.height do
+        {for j:int = 0 below 3 do
+            {self._new-pixmap.set j, i, 
+                {if j == 0 then      SolidBorderFrame.rgb2-1
+                 elseif j == 1 then  SolidBorderFrame.rgb2-2
+                 else                SolidBorderFrame.rgb2-3}}
+        }
+    }
+    ||
+    {for i:int = 2 below self._new-pixmap.height do
+        {for j:int = 0 below 3 do
+            {self._new-pixmap.set self._new-pixmap.width - 3 + j, i,
+                {if j == 0 then      SolidBorderFrame.rgb3-3
+                 elseif j == 1 then  SolidBorderFrame.rgb3-2
+                 else                SolidBorderFrame.rgb3-1}}
+        }
+    }
+    ||
+    {for i:int = 0 below 3 do
+        {for j:int = 3 below self._new-pixmap.width - 2 do
+            {self._new-pixmap.set j, self._new-pixmap.height - 3 + i, 
+                {if i == 0 then      SolidBorderFrame.rgb4-3
+                 elseif i == 1 then  SolidBorderFrame.rgb4-2
+                 else                SolidBorderFrame.rgb4-1}}}
+    }
+
+    
+  }
+
+  {getter public {pixmap}:Pixmap
+    {return self._new-pixmap}
+  }
+
+  {getter public {original-pixmap}:Pixmap
+    {return self._orig-pixmap}
+  }
+  
+}

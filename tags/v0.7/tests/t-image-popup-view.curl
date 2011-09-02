@@ -1,0 +1,161 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hideki Omatsu
+|||
+
+{curl 6.0, 7.0, 8.0 applet}
+{applet manifest = "manifest.mcurl",
+    {compiler-directives careful? = true}
+}
+
+{import * from COM.CURL.ADVANCED-UI.CONTAINERS}
+
+{let img1:ImagePopupButton = {ImagePopupButton
+                                 width = 100pt,
+                                 height = 100pt,
+                                 {url "./images/Garden-s.jpg"},
+                                 {url "./images/Garden.jpg"},
+                                 title = "Image No.1",
+                                 group-name = "GROUP-1",
+                                 tooltip = "Image No.1\nThe new line is possible, too."
+                             }}
+{let img2:ImagePopupButton = {ImagePopupButton
+                                 width = 100pt,
+                                 height = 100pt,
+                                 {url "./images/Oryx Antelope-s.jpg"},
+                                 {url "./images/Oryx Antelope.jpg"},
+                                 title = "Image No.2",
+                                 group-name = "GROUP-1",
+                                 tooltip = "Image No.2"
+                             }}
+{let img3:ImagePopupButton = {ImagePopupButton
+                                 width = 100pt,
+                                 height = 100pt,
+                                 {url "./images/Island-s.jpg"},
+                                 {url "./images/Island.jpg"},
+                                 title = "Image No.3",
+                                 group-name = "GROUP-1",
+                                 tooltip = "Image No.3"
+                             }}
+{let img4:ImagePopupButton = {ImagePopupButton
+                                 width = 100pt,
+                                 height = 100pt,
+                                 {url "./images/Forest-s.jpg"},
+                                 {url "./images/Forest.jpg"},
+                                 title = "Image No.4",
+                                 group-name = "GROUP-1",
+                                 tooltip = "Image No.4"
+                             }}
+{let img5:ImagePopupButton = {ImagePopupButton
+                                 width = 100pt,
+                                 height = 100pt,
+                                 {url "./images/Forest Flowers-s.jpg"},
+                                 {url "./images/Forest Flowers.jpg"},
+                                 title = "Image No.5",
+                                 group-name = "GROUP-1",
+                                 tooltip = "Image No.5"
+                             }}
+{let img6:ImagePopupButton = {ImagePopupButton
+                                 width = 100pt,
+                                 height = 100pt,
+                                 {url "./images/Island-s.jpg"},
+                                 {url "./images/Island.jpg"},
+                                 title = "Image No.6",
+                                 group-name = "GROUP-2",
+                                 tooltip = "Image No.6"
+                             }}
+{let img7:ImagePopupButton = {ImagePopupButton
+                                 width = 100pt,
+                                 height = 100pt,
+                                 {url "./images/sunset-s.jpg"},
+                                 {url "./images/sunset.jpg"},
+                                 title = "Image No.7",
+                                 group-name = "GROUP-3",
+                                 tooltip = "Image No.7",
+                                 animation-type = ImagePopupViewAnimationType.width-and-height
+                             }}
+{let img8:ImagePopupButton = {ImagePopupButton
+                                 width = 100pt,
+                                 height = 100pt,
+                                 {url "./images/palm-s.jpg"},
+                                 {url "./images/palm.jpg"},
+                                 title = "Image No.8",
+                                 group-name = "GROUP-3",
+                                 tooltip = "Image No.8",
+                                 animation-type = ImagePopupViewAnimationType.width-and-height
+                             }}
+{let img10:ImagePopupButton = {ImagePopupButton
+                                  width = 100pt,
+                                  height = 100pt,
+                                  {url "./images/Garden-s.jpg"},
+                                  {url "./images/Garden.jpg"},
+                                  title = "Normal Size",
+                                  group-name = "GROUP-4",
+                                  tooltip = "Normal Size"
+                              }}
+{let img11:ImagePopupButton = {ImagePopupButton
+                                  width = 100pt,
+                                  height = 100pt,
+                                  {url "./images/Garden-2.jpg"},
+                                  {url "./images/Garden-2.jpg"},
+                                  title = "When height is insufficient.",
+                                  group-name = "GROUP-4",
+                                  tooltip = "When height is insufficient."
+                              }}
+{let img12:ImagePopupButton = {ImagePopupButton
+                                  width = 100pt,
+                                  height = 100pt,
+                                  {url "./images/Garden-3.jpg"},
+                                  {url "./images/Garden-3.jpg"},
+                                  title = "When width is insufficient.",
+                                  group-name = "GROUP-4",
+                                  tooltip = "When width is insufficient."
+                              }}
+{let img13:ImagePopupButton = {ImagePopupButton
+                                  width = 100pt,
+                                  height = 100pt,
+                                  {url "./images/Garden-s.jpg"},
+                                  {url "./images/Garden.jpg"},
+                                  title = "Normal Size",
+                                  group-name = "GROUP-4",
+                                  tooltip = "Normal Size"
+                              }}
+{value
+    {VBox
+        {HBox
+            img1,
+            img2,
+            img3,
+            img4,
+            img5
+        },
+        {HBox
+            img6
+        },
+        {HBox
+            img7,
+            img8
+        },
+        {HBox
+            img10,
+            img11,
+            img12,
+            img13
+        }
+    }
+}
+
+{title heading? = false, {lmessage Popup Image for Curl}}

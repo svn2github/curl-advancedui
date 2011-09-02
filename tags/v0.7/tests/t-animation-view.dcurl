@@ -1,0 +1,173 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Yohei Yoshida, Hitoshi Okada
+|||
+
+{curl 6.0, 7.0, 8.0 applet}
+{curl-file-attributes character-encoding = "shift-jis"}
+{applet manifest = "manifest.mcurl"}
+
+{import * from CURL.GUI.SHAPES}
+{import * from COM.CURL.ADVANCED-UI.CONTAINERS}
+
+{api-version-switch
+ case "7.0+", "8.0+" do
+    || do nothing
+ case "6.0+" do
+    {import * from COM.CURL.GUI.STYLED-CONTROLS}
+    {install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
+}
+
+{def base-frame = {Frame}}
+
+{do
+    def view1 = 
+        {AnimationView
+            width = 10cm,
+            height = 10cm,
+            {image source = {url "images/1.png"}}
+        }
+    def view2 = 
+        {AnimationView
+            width = 10cm,
+            height = 10cm,
+            {spaced-vbox width = 9cm, height = 9cm,
+                {image source = {url "images/2.png"}},
+                {TextField}
+            }
+        }
+    def view3 = 
+        {AnimationView
+            width = 7cm,
+            height = 7cm,
+            {image 
+                source = {url "images/3.png"}, 
+                width = 7cm, 
+                height = 7cm
+            }
+        }
+    def view4 = 
+        {AnimationView
+            width = 7cm,
+            height = 7cm,
+            {image 
+                source = {url "images/4.png"}, 
+                width = 7cm, 
+                height = 7cm
+            }
+        }
+    {base-frame.add 
+        {spaced-vbox 
+            ||
+            || AnimationView
+            ||
+            {text Please enter mouse pointer!},
+            {ImageShape 
+                {Pixmap.from-url {url "images/1.png"}},
+                {on e:PointerEnter at v:ImageShape do
+                    {view3.show-animation
+                        repeat = 50, interval = .005s
+                    }
+                },
+                {on e:PointerLeave at v:ImageShape do
+                    {view3.hide-animation
+                        repeat = 50, interval = .005s
+                    }
+                }
+            },
+            
+            {spaced-vbox
+                {text Opacity},
+                {spaced-hbox
+                    || opacity
+                    {CommandButton
+                        label = "Show view",
+                        height = 1cm,
+                        {on Action do
+                            {view1.show-animation
+                                finish-proc = 
+                                    {proc {v:AnimationView}:void
+                                        {popup-message "loaded!!"}
+                                    }
+                            }
+                        }
+                    },
+                    {CommandButton
+                        label = "Hide view",
+                        height = 1cm,
+                        {on Action do
+                            {view1.hide-animation
+                                finish-proc = 
+                                    {proc {v:AnimationView}:void
+                                        ||{v.close}
+                                        {popup-message "hide!!"}
+                                    }
+                            }
+                        }
+                    }
+                },
+
+                {text Stretch},
+                {spaced-hbox
+                    || stretch
+                    {CommandButton
+                        label = "Show view",
+                        height = 1cm,
+                        {on Action do
+                            {view2.show-animation pattern = "stretch"}
+                        }
+                    },
+                    {CommandButton
+                        label = "Hide view",
+                        height = 1cm,
+                        {on Action do
+                            {view2.hide-animation pattern = "stretch"}
+                        }
+                    }
+                },
+
+                {text Mixed},
+                {spaced-hbox
+                    || mixed
+                    {CommandButton
+                        label = "Show view",
+                        height = 1cm,
+                        {on Action do
+                            {view4.show-animation pattern = "stretch"}
+                        }
+                    },
+                    {CommandButton
+                        label = "Hide view",
+                        height = 1cm,
+                        {on Action do
+                            {view4.hide-animation}
+                            {dump "HIDE", view4.height, view4.width}
+                        }
+                    }
+                }
+            }
+        },
+        replace? = true
+    }
+}
+
+{View
+    base-frame,
+    visibility = "normal",
+    {on WindowClose do
+        {exit}
+    }
+}

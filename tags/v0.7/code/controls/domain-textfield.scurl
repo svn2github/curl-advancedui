@@ -1,0 +1,136 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Naoto Miyazaki
+|||
+
+{define-class public DomainTextField {inherits CoreTextField,DomainControlInterface}
+  
+  
+  field private _on-focus?:bool = false
+  
+  {constructor public {default
+                          domain    :Domain = {Domain.from-type String},
+                          data-model:#StringDataModel = null,
+                          value     :any = null,
+                          prompt    :#String = null,
+                          max-chars :int = -1,
+                          ui-object :#TextFieldUI = null,
+                          ...
+                      }
+    
+    {construct-super.DomainControlInterface
+        domain, value
+    }
+    
+    {construct-super.CoreTextField
+        data-model = data-model,
+        value      = {self.domain.format value},
+        prompt     = prompt,
+        max-chars  = max-chars,
+        ui-object  = ui-object,
+        {on e:FocusIn do
+            set self._on-focus? = true
+            set self.value      = {self.get-string-value-for-edit}
+        },
+        {on e:FocusOut do
+            set self._on-focus? = false
+            set self.value      = self.value
+        },
+        {splice ...}
+    }
+    
+    {if domain.type isa NumericType
+     then
+        {self.init-as-numeric-type}
+    }
+    
+  }
+  
+  {method protected {init-as-numeric-type}:void
+    
+    set self.halign = "right"
+    set self.input-method-enabled? = false
+    set self.input-method-keyboard-mode = "alpha"
+    
+    {self.ui-object.add-event-handler
+        {on e:KeyPress do
+            {if e.insertable?
+             then
+                {switch e.value
+                 case '0','1','2','3','4','5','6','7','8','9','.','-' do
+                 else
+                    {e.consume}
+                }
+            }
+        }
+    }
+  }
+  
+  {method private {get-string-value-for-edit}:String
+    {return
+        {if self.native-value isa double
+         then
+            let str:String =
+                {format "%f",self.native-value asa double}
+            
+            set str =
+                {str.trim-right-clone trim-chars = {CharClass "0"}}
+            {if str[str.size - 1] == '.'
+             then
+                set str =
+                    {str.trim-right-clone trim-chars = {CharClass "."}}
+            }
+            
+            str
+            
+         else
+            {format "%s",self.native-value}
+        }
+    }
+  }
+  
+  {setter public {native-value value:any}:void
+    
+    set super.native-value = value
+    set super.value = {self.domain.format value}
+    
+  }
+  
+  {setter public {value value:String}:void
+    
+    {if self._on-focus?
+     then
+        set super.value = value
+     else
+        
+        let new-value:any = null
+        
+        {try
+            
+            set new-value =
+                {self.domain.parse value}
+            
+         catch e:ValidationException do
+            set new-value = self.native-value
+        }
+        
+        set self.native-value = new-value
+        
+    }
+    
+  }
+  
+}

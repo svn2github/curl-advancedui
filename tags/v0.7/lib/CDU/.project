@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>ADVANCED-UI.COM.CURL.CDU</name>
+	<comment>A Curl Project</comment>
+	<projects>
+		<project>ide</project>
+	</projects>
+	<buildSpec>
+	</buildSpec>
+	<natures>
+		<nature>com.curl.eclipse.plugin.CurlNature</nature>
+	</natures>
+</projectDescription>

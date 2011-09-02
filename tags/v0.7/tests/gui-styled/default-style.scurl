@@ -1,0 +1,1168 @@
+||| Maintained by: mgordon
+
+{import * from CURL.GUI.STANDARD}
+
+|| NOTE: This should be identical to the same file in the RTE
+|| curl/gui-toolkit/controls/styled-controls/default-style.scurl
+
+|| NOTE: This code must match ../style-designer/proto-style.scurl
+
+||""((
+{define-proc package {make-indeterminate-spec
+                         top-color:FillPattern,
+                         bottom-color:FillPattern
+                     }:ImageSkinSpec
+    let constant top-pixel:Pixel = {top-color.to-Pixel}
+    let constant bottom-pixel:Pixel = {bottom-color.to-Pixel}
+    let constant height:int = 11
+    let constant width:int = 24
+    let constant pixmap:Pixmap = {Pixmap width, height}
+
+    let px-walk-dist:int = 0
+    let blend-pixel:Pixel = {Pixel.create 0, 0, 0}
+
+    let constant high-alpha:float = 1f
+    let constant alpha-ramp:float = -0.15f
+    {for-pixel pixel:Pixel at x:int, y:int no-read in pixmap do
+        set px-walk-dist = x + y
+        set blend-pixel = {Pixel.interpolate
+                              top-pixel,
+                              y / height asa Fraction,
+                              bottom-pixel
+                          }
+        {if px-walk-dist == {floor width / 2} - 3 or
+            px-walk-dist == width - 1
+         then
+            set pixel = {Pixel.from-float
+                            blend-pixel.red ,
+                            blend-pixel.green,
+                            blend-pixel.blue,
+                            alpha = (blend-pixel.alpha *
+                                     (high-alpha + alpha-ramp))
+                        }
+         elseif px-walk-dist == {floor width / 2} - 2 or
+            px-walk-dist == width - 2
+         then
+            set pixel = {Pixel.from-float
+                            blend-pixel.red,
+                            blend-pixel.green,
+                            blend-pixel.blue,
+                            alpha = (blend-pixel.alpha *
+                                     (high-alpha + alpha-ramp * 2))
+                        }
+         elseif px-walk-dist < {floor width / 2} - 3 or
+            px-walk-dist > width - 1
+         then
+            set pixel = {Pixel.from-float
+                            blend-pixel.red,
+                            blend-pixel.green,
+                            blend-pixel.blue,
+                            alpha = blend-pixel.alpha * high-alpha
+                        }
+         else
+            set pixel = {Pixel.from-float
+                            blend-pixel.red,
+                            blend-pixel.green,
+                            blend-pixel.blue,
+                            alpha = (blend-pixel.alpha *
+                                     (high-alpha + alpha-ramp * 3))
+                        }
+        }
+    }
+    {return
+        {ProgressShiftingImageSkinSpec
+            {SlicedImage.raw
+                pixmap,
+                {new {Array-of PixmapSkinSliceSpec},
+                    {PixmapSkinSliceSpec 0, width - 1, true}
+                },
+                {new {Array-of PixmapSkinSliceSpec},
+                    {PixmapSkinSliceSpec
+                        0,
+                        height - 1,
+                        true,
+                        minimum-width = height
+                    }
+                },
+                x-tile? = true
+            }
+        }
+    }
+}
+
+{define-proc package {make-skin 
+                         cr:RecordData,
+                         prefix:String,
+                         margin-spec:OffsetSpec = {OffsetSpec 0px},
+                         draw-bottom-edge?:bool = true,
+                         overlay-decoration:#ShadedOverlayDecoration = null,
+                         highlight-boundary:double = -1.0,
+                         corner-radius:int = -1
+                     }:ShadedSkinSpec
+
+    def angle = (cr["angle"] asa double) * 1deg
+    def start-color = cr[prefix & "-start-color"] asa FillPattern
+    def end-color = cr[prefix & "-end-color"] asa FillPattern
+    def border-color = cr[prefix & "-border-color"] asa FillPattern
+    let radius:any = (cr[prefix & "-radius"] asa int) * 1px
+    {if corner-radius >= 0 then
+        set radius = corner-radius * 1px
+    }
+
+    let glow?:bool = cr[prefix & "-glow"] asa bool
+    let gap:double = {if glow? then 0.2 else 0.0}
+    let a1:double = cr[prefix & "-alpha1"] asa double 
+    let a2:double = cr[prefix & "-alpha2"] asa double
+    let boundary:double = cr[prefix & "-boundary"] asa double
+    {if highlight-boundary >= 0.0 then
+        set boundary = highlight-boundary
+    }
+    {if boundary == 0.0 then
+        set a1 = 0.0
+        set a2 = 0.0
+    }
+    {if boundary + gap > 1.0 then
+        set boundary = 1.0 - gap
+    }
+
+    let rollover-start-color:String = cr[prefix & "-start-color"] asa String
+    let rollover-end-color:String = cr[prefix & "-end-color"] asa String
+    let rollover-border-color:String = cr[prefix & "-border-color"] asa String
+    {if cr[prefix & "-use-rollover"] asa bool then
+        set rollover-start-color = 
+            cr[prefix & "-rollover-start-color"] asa String
+        set rollover-end-color = 
+            cr[prefix & "-rollover-end-color"] asa String
+        set rollover-border-color = 
+            cr[prefix & "-rollover-border-color"] asa String
+    }
+
+    {return
+        {ShadedSkinSpec
+            margin-spec = margin-spec,
+            start-color, end-color,
+            rollover-start-color = rollover-start-color,
+            rollover-end-color = rollover-end-color,
+            border-color = border-color,
+            rollover-border-color = rollover-border-color,
+            gradient-angle = angle,
+            highlight-alpha-1 = a1,
+            highlight-alpha-2 = a2,
+            highlight-boundary = boundary,
+            highlight-gap = gap,
+            corner-radius = radius,
+            upper-left-rounded? = cr[prefix & "-round-ul"] asa bool,
+            upper-right-rounded? = cr[prefix & "-round-ur"] asa bool,
+            lower-right-rounded? = cr[prefix & "-round-lr"] asa bool,
+            lower-left-rounded? = cr[prefix & "-round-ll"] asa bool,
+            draw-bottom-edge? = draw-bottom-edge?,
+            orientation-transform = "rotate-base",
+            overlay-decoration = overlay-decoration
+        }
+    }
+}
+||""))
+
+||""((
+
+{define-proc public {make-style-sheet cr:RecordData}:StyleSheet
+    def angle = (cr["angle"] asa double) * 1deg
+    def dialog-color = cr["dialog-color"] asa FillPattern
+    def dialog-text-color = cr["dialog-text-color"] asa FillPattern
+    def color = cr["color"] asa FillPattern
+    def rollover-color = cr["rollover-color"] asa FillPattern
+    def radius = cr["button-radius"] asa int
+
+    let a1:double = cr["button-alpha1"] asa double
+    let a2:double = cr["button-alpha2"] asa double
+    def boundary = cr["button-boundary"] asa double
+    {if boundary == 0.0 then
+        set a1 = 0.0
+        set a2 = 0.0
+    }
+
+    def transparent = {FillPattern.get-transparent}
+
+    let constant base-focus-color:FillPattern = 
+        cr["field-border-color"] asa String
+
+    def tab-selector-focus-color =
+        {value
+            def pixel = {base-focus-color.to-Pixel}
+            {FillPattern.from-rgb
+                pixel.red,
+                pixel.green,
+                pixel.blue,
+                opacity = pixel.alpha * 0.7
+            }
+        }
+
+    def button-skin = {make-skin cr, "button"}
+
+    def button-focus-skin =
+        {FocusShadedSkinSpec.from-shaded-spec
+            button-skin,
+            base-color = base-focus-color
+        }
+
+    def radio-button-skin =
+        {ShadedSkinSpec 
+            cr["radio-color"] asa String, cr["radio-color"] asa String,
+            border-color = cr["field-border-color"] asa String,
+            rollover-border-color = 
+                cr["field-border-color"] asa String,
+            gradient-angle = angle,
+            highlight-alpha-1 = 0.3,
+            highlight-alpha-2 = 0.5,
+            highlight-boundary = .95,
+            corner-radius = 7px
+        }
+
+    def radio-button-checked-skin =
+        {ShadedSkinSpec 
+            cr["radio-color"] asa String, cr["radio-color"] asa String,
+            border-color = cr["field-border-color"] asa String,
+            rollover-border-color = 
+                cr["field-border-color"] asa String,
+            gradient-angle = angle,
+            highlight-alpha-1 = 0.1,
+            highlight-alpha-2 = 0.2,
+            highlight-boundary = .95,
+            corner-radius = 7px,
+            overlay-decoration = "dot"
+        }
+
+    def radio-button-focus-skin =
+        {FocusShadedSkinSpec.from-shaded-spec
+            radio-button-skin,
+            base-color = base-focus-color
+        }
+
+    def transparent-skin =
+        {ShadedSkinSpec 
+            transparent, transparent,
+            rollover-start-color = transparent,
+            rollover-end-color = transparent,
+            rollover-border-color = transparent,
+            gradient-angle = 0deg,
+            highlight-alpha-1 = 0.0,
+            highlight-alpha-2 = 0.0
+        }
+
+    def check-button-skin =
+        {ShadedSkinSpec 
+            cr["radio-color"] asa String, cr["radio-color"] asa String,
+            border-color = cr["field-border-color"] asa String,
+            rollover-border-color = 
+                cr["field-border-color"] asa String,
+            gradient-angle = angle,
+            highlight-alpha-1 = 0.3,
+            highlight-alpha-2 = 0.5,
+            highlight-boundary = .95,
+            corner-radius = 0px
+        }
+
+    def check-button-checked-skin =
+        {ShadedSkinSpec 
+            cr["radio-color"] asa String, cr["radio-color"] asa String,
+            border-color = cr["field-border-color"] asa String,
+            rollover-border-color = 
+                cr["field-border-color"] asa String,
+            gradient-angle = angle,
+            highlight-alpha-1 = 0.1,
+            highlight-alpha-2 = 0.2,
+            highlight-boundary = .95,
+            corner-radius = 0px,
+            overlay-decoration = "x"
+        }
+
+    def check-button-focus-skin =
+        {FocusShadedSkinSpec.from-shaded-spec
+            check-button-skin,
+            base-color = base-focus-color
+        }
+
+    let text-inset:int = (cr["text-control-radius"] asa int) div 3
+
+    def text-control-skin =
+        {ShadedSkinSpec
+            content-background-inset = 0,
+            draw-content-background? = true,
+            margin-spec =
+                {OffsetSpec text-inset * 1px + 3px, text-inset * 1px + 4px},
+            cr["text-control-color"] asa String,
+            cr["text-control-color"] asa String,
+            gradient-angle = angle,
+            highlight-alpha-1 = 0.0,
+            highlight-alpha-2 = 0.0,
+            border-color = cr["field-border-color"] asa String,
+            corner-radius = cr["text-control-radius"] asa int
+        }
+
+    def text-control-focus-skin =
+        {FocusShadedSkinSpec.from-shaded-spec
+            text-control-skin,
+            base-color = base-focus-color
+        }
+
+    def multiline-text-control-skin =
+        {text-control-skin.modify-clone
+            margin-spec =
+                {OffsetSpec text-inset * 1px + 1px, text-inset * 1px + 1px}
+        }
+
+    def tab-container-selector-skin =
+        {make-skin cr, "tab",
+            draw-bottom-edge? = false
+        }
+
+    def tab-container-selector-focus-skin =
+        {FocusShadedSkinSpec
+            tab-selector-focus-color,
+            corner-radius = (cr["tab-radius"] asa int - 2) * 1px,
+            lower-right-rounded? = false,
+            lower-left-rounded? = false,
+            orientation-transform = "rotate-border",
+            overdraws-content? = true,
+            margin-spec = {OffsetSpec 0px}
+        }
+
+    def dropdown-list-skin =
+        {ShadedSkinSpec
+            content-background-inset = 0,
+            draw-content-background? = true,
+            margin-spec = {OffsetSpec 1px},
+            cr["text-control-color"] asa String,
+            cr["text-control-color"] asa String,
+            gradient-angle = angle,
+            highlight-alpha-1 = 0.0,
+            highlight-alpha-2 = 0.0,
+            border-color = cr["field-border-color"] asa String,
+            corner-radius = 2px
+        }
+
+    def dropdown-list-focus-skin =
+        {FocusShadedSkinSpec.from-shaded-spec
+            dropdown-list-skin,
+            base-color = base-focus-color
+        }
+
+    def spin-control-skin =
+        {ShadedSkinSpec 
+            margin-spec = {OffsetSpec 1px},
+            cr["text-control-color"] asa String,
+            cr["button-start-color"] asa String,
+            gradient-angle = angle,
+            highlight-alpha-1 = cr["button-alpha1"] asa double,
+            highlight-alpha-2 = cr["button-alpha2"] asa double,
+            border-color = cr["field-border-color"] asa String,
+            highlight-boundary = .05,
+            corner-radius = 2px
+        }
+
+    def spin-control-focus-skin =
+        {FocusShadedSkinSpec.from-shaded-spec
+            spin-control-skin,
+            base-color = base-focus-color
+        }    
+
+    def list-box-skin =
+        {ShadedSkinSpec
+            margin-spec = 2px,
+            "white", "white",
+            rollover-border-color = 
+                cr["field-border-color"] asa String,
+            gradient-angle = angle,
+            highlight-alpha-1 = 0.0,
+            highlight-alpha-2 = 0.0,
+            border-color = cr["field-border-color"] asa String,
+            corner-radius = 2px
+        }
+
+    def list-box-focus-skin =
+        {FocusShadedSkinSpec.from-shaded-spec
+            list-box-skin,
+            base-color = base-focus-color
+        }
+
+    def date-field-skin =
+        {ShadedSkinSpec
+            content-background-inset = 1,
+            draw-content-background? = true,
+            margin-spec = {OffsetSpec 1px},
+            cr["text-control-color"] asa String,
+            cr["text-control-color"] asa String,
+            gradient-angle = angle,
+            highlight-alpha-1 = 0.0,
+            highlight-alpha-2 = 0.0,
+            border-color = cr["field-border-color"] asa String,
+            corner-radius = 2px
+        }
+
+    def date-field-focus-skin =
+        {FocusShadedSkinSpec.from-shaded-spec
+            date-field-skin,
+            base-color = base-focus-color
+        }
+
+    def slider-skin =
+        {ShadedSkinSpec
+            content-background-inset = 0,
+            draw-content-background? = true,
+            content-background-option = "control-color",
+            margin-spec = {OffsetSpec 2px}, 
+            cr["text-control-color"] asa String,
+            cr["text-control-color"] asa String,
+            gradient-angle = angle,
+            highlight-alpha-1 = 0.0,
+            highlight-alpha-2 = 0.0,
+            border-color = cr["field-border-color"] asa String,
+            corner-radius = 2px
+        }
+
+    def slider-focus-skin =
+        {FocusShadedSkinSpec.from-shaded-spec
+            slider-skin,
+            base-color = base-focus-color
+        }
+
+    def accordion-selector-skin =
+        {ShadedSkinSpec
+            cr["tab-start-color"] asa String,
+            cr["tab-end-color"] asa String,
+            rollover-start-color = cr["tab-start-color"] asa String,
+            rollover-end-color = cr["tab-end-color"] asa String,
+            border-color = cr["tab-border-color"] asa String,
+            rollover-border-color = cr["tab-border-color"] asa String,
+            gradient-angle = 0deg,
+            highlight-boundary = cr["tab-boundary"] asa double,
+            highlight-alpha-1 = cr["tab-alpha1"] asa double,
+            highlight-alpha-2 = cr["tab-alpha2"] asa double,
+            corner-radius = 2px,
+            orientation-transform = "rotate-base"
+        }
+    def accordion-selector-focus-skin =
+        {FocusShadedSkinSpec
+            tab-selector-focus-color,
+            corner-radius = 0px,
+            overdraws-content? = true,
+            margin-spec = {OffsetSpec 0px}
+        }
+
+    def rsd-move-button-skin =
+        {button-skin.modify-clone
+            corner-radius = 2px,
+            margin-spec = {OffsetSpec left = 5px, right = 3px}
+        }
+
+    def rsd-move-button-focus-skin =
+        {FocusShadedSkinSpec.from-shaded-spec
+            rsd-move-button-skin,
+            base-color = base-focus-color
+        }
+
+    def rsd-text-skin =
+        {text-control-skin.modify-clone
+            margin-spec =
+                {OffsetSpec
+                    left = 4px, right = 4px,
+                    bottom = 2px, top = 2px
+                }
+        }
+
+
+    || About the default style sheet
+    ||
+    || This style sheet is sort of a template that plugs in values it
+    || looks up in cr, a RecordData.  For backwards compatability, we
+    || want to inherit as many option settings as possible, which
+    || means defining as few as possible in the style sheet. In a
+    || document, text is usually black and we have made our buttons
+    || light so that black text can be used on buttons and other
+    || controls. We are using this exact same style sheet in the Style
+    || Designer however, and dark controls with white text is a
+    || popular style. The convention we are using therefore is that if
+    || cr specifies "black" for the button text color, then we don't
+    || add any color rules. Consequently, the color will be inherited,
+    || which may or may not be black. Otherwise we add rules to get
+    || the specified color. We also add rules to make the text fields
+    || and lists black text on a white background
+    || (control-content-background) because so far, that's what we've
+    || wanted.
+
+    {return
+        {StyleSheet
+            {splice
+                {if cr["button-text-color"] != "black" then
+                    {Array
+                        {StyleRule 
+                            "CommandButton",
+                            "DropdownList/drop-button", 
+                            "ComboBox/drop-button",
+                            "DateField/calendar-button",
+                            "SpinControl/decrease-button",
+                            "SpinControl/increase-button",
+                            "TabContainer/close-button",
+                            "MenuPane/up-button",
+                            "MenuPane/down-button",
+                            "MenuButton/drop-button",
+                            "Scrollbar",
+                            "Scrollbar/decrease-button",
+                            "Scrollbar/increase-button",
+                            "rsd-nav-panel-move-button",
+
+                            color = cr["button-text-color"]
+                        }
+                    }
+                 else 
+                    {Array} || An else is required, so return an empty list
+                }
+            },
+
+            {StyleRule "LookAndFeel",
+                background = dialog-color,
+                control-color = dialog-color,
+                color = dialog-text-color,
+                accent-color = cr["accent-color"] asa String
+            },
+
+            {splice
+                {if cr["dialog-text-color"] != "black" then
+                    {Array
+                        {StyleRule "Dialog",
+                            || These are set on the LookAndFeel. If the
+                            || dialog text color is not black, we set it
+                            || here to be more specific.
+                            background = dialog-color,
+                            control-color = dialog-color,
+                            color = dialog-text-color
+                        },
+                        {StyleRule 
+                            || If the style sheet uses black text then
+                            || we assume it should inherit the text
+                            || color.  Otherwise, for controls where we
+                            || normally use color for text and a white
+                            || control-content-background, we set those
+                            || colors here explicitly.
+                            "TextField", "PasswordField", 
+                            "TextArea", "RichTextArea", 
+                            "TextDisplay", 
+                            "ListBox", "DropdownList", "ComboBox",
+                            "SpinControl/text-field", 
+                            "DateField", "DateField/date-editor", 
+                            "CalendarControl",
+                            "RecordGridCell",
+                            control-content-background = "white",
+                            color = "black"
+                        }
+                    }
+                 else 
+                    {Array} || An else is required, so return an empty list
+                }
+            },
+
+            {StyleRule "CommandButton",
+                rollover-color = rollover-color,
+                skin = button-skin,
+                focus-skin = button-focus-skin
+            },
+
+            {StyleRule "GroupBox",
+                title-area-skin = 
+                    {if cr["glabel-none"] asa bool then
+                        transparent-skin
+                     else
+                        {make-skin cr, "glabel"}
+                    },
+
+                label-skin = 
+                    || label at the left
+                    {ShadedSkinSpec 
+                        margin-spec = {OffsetSpec 2px},
+                        {FillPattern.get-transparent},
+                        {FillPattern.get-transparent},
+                        rollover-start-color = {FillPattern.get-transparent},
+                        rollover-end-color = {FillPattern.get-transparent},
+                        rollover-border-color = {FillPattern.get-transparent},
+                        gradient-angle = 0deg,
+                        highlight-alpha-1 = 0.0,
+                        highlight-alpha-2 = 0.0
+                    }
+            },
+            {if cr["group-skin-outside"] asa bool then
+                {StyleRule "GroupBox",
+                    skin = {make-skin cr, "group",
+                               margin-spec = {OffsetSpec 4px}
+                           }
+                }
+             else
+                {StyleRule "GroupBox",
+                    content-skin = {make-skin cr, "group",
+                                       margin-spec = {OffsetSpec 2px}
+                                   }
+                }
+            },
+            {StyleRule "GroupBox/label",
+                border-color = {FillPattern.get-transparent},
+                border-spec = {BorderSpec left-border-width = 4pt}
+            },
+
+            {StyleRule "TabContainer/close-button", ||.first
+                skin = {make-skin cr, "button", 
+                           overlay-decoration = "x", corner-radius = 2
+                       }
+            },
+            {StyleRule "TabContainer/selector", ||.first
+                accent-color = cr["tab-selected-color"],
+                skin = tab-container-selector-skin,
+                focus-skin = tab-container-selector-focus-skin
+            },
+            {StyleRule "DropdownList.tab-dropdown-list-control",
+                width = {make-elastic minimum-size = 15px,
+                            preferred-size = 1m},
+                height = {make-elastic minimum-size = 15px,
+                             preferred-size = 1m},
+                margin = 2px,
+                skin =
+                    {ShadedSkinSpec
+                        cr["button-start-color"] asa String,
+                        cr["button-end-color"] asa String,
+                        border-color = cr["button-border-color"] asa String,
+                        corner-radius = 5px,
+                        overlay-decoration = "triangle-down",
+                        margin-spec = 7px,
+                        orientation-transform = "rotate-base"
+                    },
+                focus-skin = null
+            },
+            {StyleRule "Fill.tab-selector-interval-spacer",
+                width = 0pt,
+                height = 0pt
+            },
+            {StyleRule "Fill.tab-selectors-list-spacer",
+                width = 1px,
+                height = 1px
+            },
+            {StyleRule "TabContainer",
+                background = "transparent",
+                panes-skin =
+                    {ShadedSkinSpec
+                        cr["tab-color"] asa String,
+                        cr["tab-color"] asa String,
+                        border-color =
+                            {FillPattern.from-rgb 0, 0, 0, opacity = 0.3},
+                        draw-top-edge? = false,
+                        orientation-transform = "rotate-base",
+                        margin-spec =
+                            {OffsetSpec
+                                left = 1px, right = 1px,
+                                top = 0px, bottom = 1px
+                            }
+                    }
+            },
+
+            {StyleRule "RadioButton",
+                skin = radio-button-skin,
+                focus-skin = radio-button-focus-skin,
+                checked-skin = radio-button-checked-skin
+            },
+            {StyleRule "RadioButton/toggle",
+                vorigin = 0.92
+            },
+
+            {StyleRule "CheckButton",
+                skin = check-button-skin,
+                checked-skin = check-button-checked-skin,
+                focus-skin = check-button-focus-skin
+            },
+            {StyleRule "CheckButton/toggle",
+                vorigin = 0.92
+            },
+
+            {StyleRule 
+                "TextField", 
+                "PasswordField", 
+                skin = text-control-skin,
+                focus-skin = text-control-focus-skin
+            },
+
+            {StyleRule 
+                "TextArea",
+                "RichTextArea",
+                skin = multiline-text-control-skin,
+                focus-skin = text-control-focus-skin
+            },
+
+            {StyleRule 
+                "TextField/string-box", "PasswordField/string-box", 
+                "TextArea/string-box", "RichTextArea/string-box",
+                margin = 0px
+            },                     
+
+            {StyleRule "RichTextArea/format-panel", 
+                margin = 2px,
+                background = cr["dialog-color"] asa String
+            },
+
+            {StyleRule "TextDisplay",
+                control-content-background = "#e0e0e0",
+                skin = 
+                    {ShadedSkinSpec 
+                        content-background-inset = 0,
+                        draw-content-background? = true,
+                        margin-spec =
+                            {OffsetSpec
+                                text-inset * 1px + 3px, text-inset * 1px + 4px
+                            },
+                        "transparent", "transparent",
+                        border-color = cr["field-border-color"] asa String,
+                        gradient-angle = angle,
+                        highlight-alpha-1 = 0.0,
+                        highlight-alpha-2 = 0.0,
+                        corner-radius = cr["text-control-radius"] asa int
+                    },
+                focus-skin = text-control-focus-skin
+            },
+
+            {StyleRule "TextDisplay/string-box",
+                border-width = 1px, 
+                border-color = transparent,
+                background = transparent
+            },
+
+            {StyleRule "ListBox",
+                skin = list-box-skin,
+                focus-skin = list-box-focus-skin
+            },
+            {StyleRule "ListValueItem",
+                border-spec = {BorderSpec left-margin = 2px}
+            },
+
+            {StyleRule "DropdownList",
+                "ComboBox",
+                vorigin = 0.73,
+                skin = dropdown-list-skin,
+                focus-skin = dropdown-list-focus-skin
+            },
+
+            {StyleRule "ComboBox/string-box",
+                border-spec =
+                    {BorderSpec
+                        left-margin = 3px, right-margin = 3px,
+                        top-margin = 2px, bottom-margin = 2px
+                    }
+            },
+            {StyleRule "DropdownList/item-frame",
+                border-color = transparent,
+                border-spec = 
+                    {BorderSpec 
+                        left-border-width = 2px, right-border-width = 2px
+                    },
+                margin = 2px
+            },
+            {StyleRule "DropdownList/drop-button", 
+                "MenuButton/drop-button",
+                "ComboBox/drop-button",
+                "DateField/calendar-button",
+                width = 14px,
+                skin = 
+                    {ShadedSkinSpec
+                        margin-spec = {OffsetSpec 1px},
+                        cr["button-start-color"] asa String,
+                        cr["button-end-color"] asa String,
+                        border-color = cr["button-border-color"] asa String,
+                        gradient-angle = angle,
+                        highlight-alpha-1 = cr["button-alpha1"] asa double,
+                        highlight-alpha-2 = cr["button-alpha2"] asa double,
+                        highlight-boundary = .25,
+                        highlight-gap = .2,
+                        corner-radius = 2px,
+                        upper-left-rounded? = false,
+                        lower-left-rounded? = false,
+                        overlay-decoration = "triangle-down"
+                    }
+            },
+            {StyleRule "MenuButton/drop-button",
+                border-spec = {BorderSpec
+                                  right-margin = 3px,
+                                  top-margin = 3px,
+                                  bottom-margin = 3px
+                              }
+            },
+
+            {StyleRule "MenuBar", "MenuPane", "DropdownMenuPane",
+                control-color = cr["menu-color"] asa String,
+                background = cr["menu-color"] asa String,
+                color = cr["menu-text-color"]
+            },
+
+            {StyleRule "MenuBar",
+                margin = 3px
+            },
+            {StyleRule "MenuBar/item-box",
+                margin = 1px
+            },
+            {StyleRule "MenuBar/divider-box",
+                spacing = 1pt,
+                margin = 1pt
+            },
+            {StyleRule "MenuBar/divider",
+                width = 
+                    {make-elastic stretch-order = compliant-stretch-order},
+                height = 1pt,
+                border-style = BorderStyle.groove,
+                border-width = 1pt,
+                border-color = {get-highlight-for "#c0c0c0"}
+            },
+
+            {StyleRule "MenuButton", 
+                rollover? = false,
+                color = cr["button-text-color"],
+                skin = 
+                    {ShadedSkinSpec 
+                        cr["button-start-color"] asa String,
+                        cr["button-start-color"] asa String,
+                        border-color = cr["accent-color"] asa String,
+                        corner-radius = 3px,
+                        gradient-angle = 0deg,
+                        highlight-boundary = .2,
+                        highlight-gap = .5,
+                        highlight-alpha-1 = 0.3,
+                        highlight-alpha-2 = 0.3
+                    },
+                focus-skin = button-focus-skin
+            },
+            {StyleRule "MenuButton/button-box",
+                spacing = 1px,
+                margin = 1px
+            },
+            {StyleRule "MenuAction", "SubMenu", "MenuSeparator",
+                control-color = "transparent"
+            },
+            {StyleRule "DropdownMenuPane", "MenuPane",
+                background = cr["menu-color"] asa String,
+                border-color = cr["button-border-color"] asa String,
+                border-style = "raised",
+                border-width = 1px
+            },
+            {StyleRule "MenuPane/up-button",
+                height = 10px,
+                width = 12px,
+                skin = {make-skin cr, "button", 
+                           overlay-decoration = "triangle-up"
+                       }
+            },
+            {StyleRule "MenuPane/down-button",
+                height = 10px,
+                width = 12px,
+                skin = {make-skin cr, "button", 
+                           overlay-decoration = "triangle-down"
+                       }
+            },
+
+            {StyleRule "SpinControl",
+||--                "DateField/date-editor",
+                skin = spin-control-skin,
+                focus-skin = spin-control-focus-skin
+            },
+
+            {StyleRule "SpinControl/text-field",
+                skin =
+                    {ShadedSkinSpec 
+                        margin-spec =
+                            {OffsetSpec
+                                left = 3px, right = 3px,
+                                top = 2px, bottom = 2px
+                            },
+                        cr["text-control-color"] asa String,
+                        cr["text-control-color"] asa String,
+                        rollover-start-color = 
+                            cr["text-control-color"] asa String,
+                        rollover-end-color = 
+                            cr["text-control-color"] asa String,
+                        gradient-angle = angle,
+                        highlight-alpha-1 = 0.0,
+                        highlight-alpha-2 = 0.0,
+                        border-color = "white",
+                        corner-radius = 0px,
+                        draw-content-background? = true,
+                        content-background-inset = 0
+                    },
+                focus-skin = {BlankFocusSkinSpec}
+            },
+            {StyleRule 
+                "SpinControl/decrease-button",
+                height = {make-elastic minimum-size = 7px},
+                width = 12px,
+                skin = 
+                    {ShadedSkinSpec 
+                        cr["button-start-color"] asa String,
+                        cr["button-end-color"] asa String,
+                        border-color = cr["button-border-color"] asa String,
+                        rollover-border-color = 
+                            cr["button-border-color"] asa String,
+                        gradient-angle = angle,
+                        highlight-alpha-1 = cr["button-alpha1"] asa double,
+                        highlight-alpha-2 = cr["button-alpha2"] asa double,
+                        highlight-boundary = .05,
+                        overlay-decoration = "triangle-down",
+                        corner-radius = 2px,
+                        upper-right-rounded? = false,
+                        upper-left-rounded? = false,
+                        lower-left-rounded? = false
+                    }
+            },
+            {StyleRule "SpinControl/increase-button",
+                height = {make-elastic minimum-size = 7px},
+                width = 12px,
+                skin = 
+                    {ShadedSkinSpec 
+                        cr["button-start-color"] asa String,
+                        cr["button-end-color"] asa String,
+                        border-color = cr["button-border-color"] asa String,
+                        rollover-border-color = 
+                            cr["button-border-color"] asa String,
+                        gradient-angle = angle,
+                        highlight-alpha-1 = cr["button-alpha1"] asa double,
+                        highlight-alpha-2 = cr["button-alpha2"] asa double,
+                        highlight-boundary = .05,
+                        overlay-decoration = "triangle-up",
+                        corner-radius = 2px,
+                        lower-right-rounded? = false,
+                        upper-left-rounded? = false,
+                        lower-left-rounded? = false
+                    }
+            },
+
+            {StyleRule "Scrollbar",
+                border-width = 0px,
+                accent-color = cr["accent-color"] asa String,
+                skin = 
+                    {ShadedSkinSpec 
+                        margin-spec = {OffsetSpec 1px}, || this does nothing
+                        cr["button-start-color"] asa String,
+                        cr["button-end-color"] asa String,
+                        border-color = cr["button-border-color"] asa String,
+                        rollover-border-color = 
+                            cr["button-border-color"] asa String,
+                        gradient-angle = -90deg,
+                        highlight-alpha-1 = 0.7,
+                        highlight-alpha-2 = 0.15,
+                        highlight-boundary = .5,
+                        corner-radius = 2px
+                    },
+
+                thumb-skin =
+                    {ShadedSkinSpec 
+                        cr["thumb-color"] asa String,
+                        cr["thumb-color"] asa String,
+                        border-color = cr["button-border-color"] asa String,
+||--                        rollover-border-color = 
+||--                            cr["thumb-color"] asa String,
+                        gradient-angle = 0deg,
+                        highlight-alpha-1 = 0.2,
+                        highlight-alpha-2 = 0.1,
+                        highlight-boundary = .05,
+                        overlay-decoration = "grip",
+                        corner-radius = 3px,
+                        orientation-transform = "rotate-base"
+                    },
+
+                channel-skin = 
+                    {ShadedSkinSpec 
+                        "#bbb", "#E3E6D7",
+                        border-color = cr["button-border-color"] asa String,
+                        rollover-border-color = 
+                            cr["button-border-color"] asa String,
+                        gradient-angle = -90deg,
+                        highlight-alpha-1 = 0.0,
+                        highlight-alpha-2 = 0.0,
+                        highlight-boundary = .35,
+                        corner-radius = 0px,
+                        orientation-transform = "rotate-base"
+                    }
+            },
+            {StyleRule "Scrollbar/decrease-button",
+                skin = 
+                    {make-skin
+                        cr,
+                        "button",
+                        overlay-decoration = "decrease-triangle",
+                        highlight-boundary = .05,
+                        corner-radius = 3
+                    }
+            },
+            {StyleRule "Scrollbar/increase-button",
+                skin = 
+                    {make-skin
+                        cr,
+                        "button",
+                        overlay-decoration = "increase-triangle",
+                        highlight-boundary = .05,
+                        corner-radius = 3
+                    }
+            },
+
+            {StyleRule "DateField",
+                control-color = cr["calendar-control-color"],
+                calendar-control-header-background = cr["button-start-color"],
+                calendar-control-header-color = cr["button-text-color"],
+                skin = date-field-skin,
+                focus-skin = date-field-focus-skin
+            },
+
+            {StyleRule "CalendarControl",
+                control-color = cr["calendar-control-color"],
+                calendar-control-header-background = cr["button-start-color"],
+                calendar-control-header-color = cr["button-text-color"],
+                skin = 
+                    {make-skin
+                        cr,
+                        "button",
+                        margin-spec = {OffsetSpec 2px},
+                        corner-radius = 3
+                    }
+            },
+
+            {StyleRule "ProgressBar",
+                caption-placement = "inline",
+                progress-frame-skin =
+                    {ShadedSkinSpec
+                        margin-spec = {OffsetSpec 2px},
+                        cr["tab-end-color"] asa String,
+                        cr["tab-start-color"] asa String,
+                        border-color = cr["progress-border-color"] asa String,
+                        gradient-angle = 0deg,
+                        highlight-alpha-1 = 0.0,
+                        highlight-alpha-2 = 0.0,
+                        highlight-boundary = .05,
+                        corner-radius = 2px
+                    },
+                determinate-skin =
+                    {ShadedSkinSpec
+                        cr["progress-start-color"] asa String,
+                        cr["progress-end-color"] asa String,
+                        draw-top-edge? = false,
+                        draw-right-edge? = false,
+                        draw-left-edge? = false,
+                        draw-bottom-edge? = false,
+                        highlight-alpha-1 = 0.5,
+                        highlight-alpha-2 = 0.3,
+                        highlight-boundary = .5
+                    },
+                indeterminate-skin =
+                    {make-indeterminate-spec
+                        cr["progress-start-color"] asa String,
+                        cr["progress-end-color"] asa String
+                    }
+            },
+            {StyleRule "ProgressBar/caption",
+                outside-margin = {OffsetSpec left = 6px}
+            },
+
+            {StyleRule "TabAccordion", "MultiTabAccordion", 
+                skin = 
+                    {ShadedSkinSpec
+                        margin-spec = {OffsetSpec 1px},
+                        cr["dialog-color"] asa String,
+                        cr["dialog-color"] asa String,
+                        highlight-alpha-1 = 0.0,
+                        highlight-alpha-2 = 0.0,
+                        border-color = cr["field-border-color"] asa String,
+                        corner-radius = 2px
+                    }
+
+            },
+            {StyleRule "TabAccordion/selector", "MultiTabAccordion/selector", 
+                accent-color = cr["tab-selected-color"],
+                skin = accordion-selector-skin,
+                focus-skin = accordion-selector-focus-skin
+            },
+
+            {StyleRule "Slider",
+                skin = slider-skin,
+                focus-skin = slider-focus-skin,
+                knob-skin =
+                    {ShadedSkinSpec
+                        cr["button-start-color"] asa String,
+                        cr["button-end-color"] asa String,
+                        border-color = "gray",
+                        rollover-border-color = "gray",
+                        highlight-alpha-1 = 0.6,
+                        highlight-alpha-2 = 0.3,
+                        corner-radius = 6px,
+                        margin-spec = {OffsetSpec 5px},
+                        upper-left-rounded? = false,
+                        lower-left-rounded? = false,
+                        orientation-transform = "rotate-base"
+                    },
+                panel-skin =
+                    {ShadedSkinSpec
+                        cr["button-start-color"] asa String,
+                        cr["button-end-color"] asa String,
+                        border-color = "gray",
+                        rollover-border-color = "gray",
+                        highlight-alpha-1 = 0.0,
+                        highlight-alpha-2 = 0.0,
+                        corner-radius = 0px,
+                        orientation-transform = "rotate-base"
+                    }
+            },
+
+            {StyleRule "CommandButton.rsd-nav-panel-move-button",
+                skin = rsd-move-button-skin,
+                focus-skin = rsd-move-button-focus-skin
+            },
+            {StyleRule "TextField.rsd-nav-panel-text-control",
+                skin = rsd-text-skin,
+                focus-skin = text-control-focus-skin
+            },
+
+            {StyleRule "RecordGrid",
+                control-color = cr["recordgrid-color"]
+            },
+            {StyleRule "SRGCheckButton",
+                skin = check-button-skin,
+                checked-skin = check-button-checked-skin
+            },
+            {platform-switch
+             case "mac" do
+                {StyleRule "SRGDropdownList",
+                    margin = 2px
+                }
+             else
+                {StyleRule "SRGDropdownList"}
+            },
+
+            {StyleRule "TreeControl",
+                control-appearance-changeable? = true
+            }
+        }
+    }
+}
+||""))
+
+
+{include "dss-defs.scurl"}
+
+
+{let package the-cached-default-style-sheet:#StyleSheet = null}
+
+{doc-next
+    {purpose
+        Gets a {docref StyleSheet} defining the standard appearance
+        for a skinnable Curl applet.
+    }
+    {since 7.0}
+}
+{define-proc public {get-default-style-sheet}:StyleSheet
+    {if-non-null ss = the-cached-default-style-sheet then
+        {return ss}
+     else
+        def new-style-sheet = {make-style-sheet cr}
+        set the-cached-default-style-sheet = new-style-sheet
+        {return new-style-sheet}
+    }
+}
+
+{get-default-style-sheet}

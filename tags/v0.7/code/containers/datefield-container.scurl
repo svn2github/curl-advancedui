@@ -1,0 +1,84 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @authors Hitoshi Okada
+|||
+
+{import * from COM.CURL.ADVANCED-UI.CONTROLS}
+
+
+||
+|| FromToDateFieldContainer
+||
+{define-class public open FromToDateFieldContainer
+  {inherits Frame}
+
+  field public-get constant from:CoreDateField
+  field public-get constant to:CoreDateField
+
+  || true  : from <= to
+  || false : from > to or from/to is null
+  {getter public open {valid-values?}:bool
+    {return 
+        {if-non-null f = self.from.value, t = self.to.value then
+            ({f.compare t} <= 0)
+         else
+            false
+        }
+    }
+  }
+
+  {getter public open {from-value}:#DateTime
+    {return self.from.value}
+  }
+  {getter public open {to-value}:#DateTime
+    {return self.to.value}
+  }
+
+  {constructor public {default
+                          from:CoreDateField,
+                          to:CoreDateField,
+                          between-date-fields:#Graphic = null,
+                          vertical?:bool = false,
+                          ...
+                      }
+    
+    set self.from = from
+    set self.to = to
+    {construct-super.Frame {splice ...}}
+
+    {self.add
+        {if-non-null bdf = between-date-fields then
+            {if vertical? then
+                {spaced-vbox from, bdf, to}
+             else
+                {spaced-hbox from, bdf, to}
+            }
+         else
+            {if vertical? then
+                {spaced-vbox from, to}
+             else
+                {spaced-hbox from, to}
+            }
+        }
+    }
+    {from.add-event-handler
+        {on e:ValueFinished do
+            {to.request-key-focus}
+            {e.consume}
+        }
+    }
+  }
+}

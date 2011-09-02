@@ -1,0 +1,248 @@
+||| Copyright (C) 1998-2008, Sumisho Computer Systems Corp. All Rights Reserved.
+
+||| Licensed under the Apache License, Version 2.0 (the "License");
+||| you may not use this file except in compliance with the License.
+||| You may obtain a copy of the License at
+||| 
+|||     http://www.apache.org/licenses/LICENSE-2.0
+||| 
+||| Unless required by applicable law or agreed to in writing, software
+||| distributed under the License is distributed on an "AS IS" BASIS,
+||| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+||| See the License for the specific language governing permissions and
+||| limitations under the License.
+
+|||
+||| @author Hitoshi Okada
+|||
+
+{curl 6.0, 7.0, 8.0 applet}
+{curl-file-attributes character-encoding = "shift-jis"}
+{applet manifest = "manifest.mcurl"}
+
+{import * from COM.CURL.ADVANCED-UI.CONTAINERS}
+{api-version-switch
+ case "7.0+", "8.0+" do
+    || do nothing
+ case "6.0+" do
+    {import * from COM.CURL.GUI.STYLED-CONTROLS}
+    {install-style-sheet {manifest-url "file", "DEFAULT-STYLE-SHEET"}}
+}
+
+{define-proc {make-RotateFrames 
+                 height:any = 0cm,
+                 width:any = 0cm,
+                 valign:any = "top", || NOTE: important
+                 ...
+             }:{Array-of Frame}
+    
+    def frames = {{Array-of Frame}}
+    {for v in ... do
+        {if v isa Graphic then
+            {frames.append 
+                {Frame v, height = height, width = width, valign = valign}
+            }
+        }
+    }
+    {return frames}
+}
+
+
+{def base-frame = {Frame}}
+
+{do
+
+    def frames1 = 
+        {make-RotateFrames height = 2cm, width = 2cm, 
+            {image source = {url "images/1.png"}},
+            {image source = {url "images/2.png"}},
+            {image source = {url "images/3.png"}}
+        }
+
+    def frames2 = 
+        {make-RotateFrames height = 3cm, width = 8cm,
+            {TextFlowBox
+                {paragraph {bold 2009 Will Be The Year of RIA} for Enterprises 
+                    - Jeremy Geelan, SysCon Exclusive Q&A with Jnan Dash, 
+                    Chief Strategy Officer, {text color = "blue", Curl Inc}. 
+                }
+            },
+            {TextFlowBox
+                {paragraph {bold The Architect's Role} - 
+                    Deirdre Blake, Dr. Dobbs 
+                    Deidre interviews {text color = "green", David Kranz}, 
+                    Curl CTO about the architect's role in the world of 
+                    RIA development.
+                }
+            }, 
+            
+            {TextFlowBox
+                {paragraph {text color = "orange", Red Monk RIA Weekly Podcast}
+                    - {bold Episode 17 Richard Monson-Haefel} joins Red Monk to 
+                    discuss recent Curl news, history and more.
+                } 
+            },
+            
+            {TextFlowBox
+                {paragraph The Other RIA Desktop {bold Platform} 
+                    {text color = "red", Curl Nitro} - 
+                    Sarah Perez, ReadWriteWeb Sarah highlights the new Curl 
+                    {text color = "pink", Nitro} Facebook graph and talks 
+                    about other players in the RIA arena.
+                }
+            }
+        }
+
+    def frames3 = 
+        {make-RotateFrames
+            height = 2cm, width = 2cm, 
+            {image source = {url "images/1.png"}},
+            {image source = {url "images/2.png"}},
+            {image source = {url "images/3.png"}},
+            {image source = {url "images/4.png"}},
+            {image source = {url "images/5.png"}},
+            {image source = {url "images/6.png"}}
+        }
+
+    def frames4 = 
+        {{Array-of Frame}
+            {Frame valign = "top", width = 3cm, height = 3cm, background = "green"},
+            {Frame valign = "top", width = 3cm, height = 3cm, background = "yellow"},
+            {Frame valign = "top", width = 3cm, height = 3cm, background = "red"},
+            {Frame valign = "top", width = 3cm, height = 3cm, background = "blue"},
+            {Frame valign = "top", width = 3cm, height = 3cm, background = "pink"}}
+
+    def frames5 = 
+        {{Array-of Frame}
+            {Frame valign = "top", width = 1cm, height = 2cm, background = "green"},
+            {Frame valign = "top", width = 1cm, height = 2cm, background = "yellow"},
+            {Frame valign = "top", width = 1cm, height = 2cm, background = "red"},
+            {Frame valign = "top", width = 1cm, height = 2cm, background = "blue"},
+            {Frame valign = "top", width = 1cm, height = 2cm, background = "pink"}}
+
+
+    def canvas = 
+        {RotatorCanvas 
+            frames4,
+            height = 3cm,
+            width = 3cm,
+            border-color = "pink",
+            border-width = 2pt,
+            rotating-enabled? = false
+        }
+
+    {base-frame.add
+        {spaced-vbox
+
+            || images rotator
+            {text font-size = 14pt, color = "blue", Images rotator},
+            {RotatorCanvas
+                frames1,
+                height = 2cm,
+                width = 4cm,
+                rotating-interval = 0s,
+                rotating-scroll-interval = .02s,
+                rotating-direction = RotatorDirection.left,
+                background = "black",
+                border-color = "black",
+                border-width = 5pt,
+                rotating-enabled? = true
+            },
+            
+            || news rotator
+            {text font-size = 14pt, color = "blue", News rotator},
+            {RotatorCanvas
+                frames2,
+                height = 3cm,
+                width = 8cm,
+                rotating-interval = 3s,
+                rotating-direction = RotatorDirection.down,
+                rotating-scroll-interval = .01s,
+                border-color = "grey",
+                border-width = 3pt,
+                rotating-enabled? = true
+            }|#,
+            
+            || slideshow rotator
+            {text font-size = 14pt, color = "blue", Slideshow rotator},
+            {RotatorCanvas
+                frames3,
+                height = 2cm,
+                width = 2cm,
+                rotating-interval = 2s,
+                rotating-direction = RotatorDirection.right,
+                rotating-scroll-interval = .01s,
+                border-color = "silver",
+                border-width = 2pt,
+                rotating-enabled? = false,
+                || RotatorEvent
+                {on e:RotatorEvent do
+                    {dump e.index, e.frame}
+                }
+            },
+            
+            || test rotator
+            {text font-size = 14pt, color = "blue", Test rotator},
+            canvas,
+            
+            {spaced-hbox
+                {CommandButton label = "stop", 
+                    {on Action do
+                        {canvas.disable-rotating}
+                    }
+                },
+                {CommandButton label = "start", 
+                    {on Action do
+                        {canvas.enable-rotating}
+                    }
+                }||,
+||            {CommandButton label = "switch-frames",
+||                {on Action do
+||                    {frames4.append 
+||                        {Frame valign = "top", width = 3cm, height = 3cm, 
+||                            background = "orange"}
+||                    }
+||                    {canvas.switch-frames frames4}
+||                }
+||            }
+            },
+            
+            {RotatorCanvas
+                frames5,
+                height = 2cm,
+                width = 1cm,
+                rotating-interval = 1.5s,
+                rotating-direction = RotatorDirection.down,
+                rotating-scroll-interval = 0.001s,
+                rotating-enabled? = false
+            }
+            #|
+        }
+    }
+
+        || marquee
+|#
+        {RotatorCanvas
+            {{Array-of Frame}
+                {Frame width = 20cm, height = .5cm,
+                    "At the Web 2.0 Expo April 21, Curl is expected"},
+                {Frame width = 20cm, height = .5cm,
+                    "At the Web 2.0 Expo April 21, Curl is expected"}
+            },
+            .5cm,
+            5cm,
+            rotating-interval = 0s,
+            rotating-direction = RotatorDirection.left,
+            border-color = "pink",
+            border-width = 1pt
+        },
+#|
+}
+
+{View 
+    base-frame,
+    visibility = "normal",
+    {on WindowClose do
+        {exit}
+    }
+}

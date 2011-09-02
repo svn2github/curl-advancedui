@@ -1,0 +1,56 @@
+|| **********************************************************
+|| *** THIS FILE IS AUTOMATICALLY UPDATED BY THE CURL IDE ***
+|| ***              DO NOT MODIFY IT BY HAND              ***
+|| **********************************************************
+{project
+    version = 3,
+    manifest-location = "manifest.mcurl",
+    api-version = "8.0",
+    compiler-directives = "careful? = true",
+    use-style-sheets? = true,
+    project-look-and-feel = "default-style-sheet",
+    style-package-name = "COM.CURL.GUI.STYLED-CONTROLS",
+    style-sheet-name = "DEFAULT-STYLE-SHEET",
+    allow-hidden-access? = false,
+    debug-compile? = false,
+    make-guide-index? = false,
+    {target
+        name = "deploy",
+        target-url-name = "../build/deploy",
+        certificate = "",
+        {resource-transform "images\u0000directory\u0000images", copy? = true},
+        {package-transform "COM.CURL.ADVANCED-UI.EVENTS\u0000package\u0000events/load.scurl", pcurl? = true},
+        {package-transform "COM.CURL.ADVANCED-UI.UTILS\u0000package\u0000utils/load.scurl", pcurl? = true},
+        {package-transform "COM.CURL.ADVANCED-UI.CONTROLS\u0000package\u0000controls/load.scurl", pcurl? = true},
+        {package-transform "COM.CURL.ADVANCED-UI.TOOLS\u0000package\u0000tools/load.scurl", pcurl? = true},
+        {package-transform "COM.CURL.ADVANCED-UI.CONTAINERS\u0000package\u0000containers/load.scurl", pcurl? = true},
+        {resource-transform "classic-project.cprj\u0000file\u0000classic-project.cprj"},
+        {resource-transform "project.cprj\u0000file\u0000project.cprj"}
+    },
+    {target
+        name = "deploy-docs",
+        target-url-name = "../build/deploy-docs",
+        certificate = "",
+        {resource-transform "images\u0000directory\u0000images", copy? = true},
+        {package-transform "COM.CURL.ADVANCED-UI.EVENTS\u0000package\u0000events/load.scurl", pcurl? = true, generate-doc? = true},
+        {package-transform "COM.CURL.ADVANCED-UI.UTILS\u0000package\u0000utils/load.scurl", pcurl? = true, generate-doc? = true},
+        {package-transform "COM.CURL.ADVANCED-UI.CONTROLS\u0000package\u0000controls/load.scurl", pcurl? = true, generate-doc? = true},
+        {package-transform "COM.CURL.ADVANCED-UI.TOOLS\u0000package\u0000tools/load.scurl", pcurl? = true, generate-doc? = true},
+        {package-transform "COM.CURL.ADVANCED-UI.CONTAINERS\u0000package\u0000containers/load.scurl", pcurl? = true, generate-doc? = true},
+        {resource-transform "classic-project.cprj\u0000file\u0000classic-project.cprj"},
+        {resource-transform "project.cprj\u0000file\u0000project.cprj"}
+    },
+    {target
+        name = "deploy-source",
+        target-url-name = "../build/deploy-source",
+        certificate = "",
+        {resource-transform "images\u0000directory\u0000images", copy? = true},
+        {package-transform "COM.CURL.ADVANCED-UI.EVENTS\u0000package\u0000events/load.scurl", copy? = true},
+        {package-transform "COM.CURL.ADVANCED-UI.UTILS\u0000package\u0000utils/load.scurl", copy? = true},
+        {package-transform "COM.CURL.ADVANCED-UI.CONTROLS\u0000package\u0000controls/load.scurl", copy? = true},
+        {package-transform "COM.CURL.ADVANCED-UI.TOOLS\u0000package\u0000tools/load.scurl", copy? = true},
+        {package-transform "COM.CURL.ADVANCED-UI.CONTAINERS\u0000package\u0000containers/load.scurl", copy? = true},
+        {resource-transform "classic-project.cprj\u0000file\u0000classic-project.cprj", copy? = true},
+        {resource-transform "project.cprj\u0000file\u0000project.cprj", copy? = true}
+    }
+}

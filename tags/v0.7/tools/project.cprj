@@ -1,0 +1,19 @@
+|| *******************************************************
+|| *** THIS FILE IS AUTOMATICALLY UPDATED BY SURGE LAB ***
+|| ***              DO NOT MODIFY IT BY HAND           ***
+|| *******************************************************
+
+{project
+    version = 3,
+    manifest-location = "manifest.mcurl",
+    api-version = "8.0",
+    compiler-directives = "careful? = true",
+    use-style-sheets? = true,
+    project-look-and-feel = "default-style-sheet",
+    style-package-name = "",
+    style-sheet-name = "",
+    {target
+        name = "default",
+        target-url-name = "deploy-default"
+    }
+}
